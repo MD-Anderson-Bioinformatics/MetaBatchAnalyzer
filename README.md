@@ -11,7 +11,7 @@ The MetaBatch Analyzer works with many Metabolomics Workbench datasets. Some dat
 
 For example, Analysis AN000025 has two entries for uridine and uridine_1 in the matrix. But the NGCHM link map has two uridine entries for just "uridine". In this case, if you disable generating the NGCHM, the dataset will work.
 
-### MetaBatch Analyzer DockeAN000025 AN000025 AN000025 AN000025 r Quick Start
+### MetaBatch Analyzer Docker Quick Start
 
 Download the docker-compose.yml file at the root of this repository. This file is setup for use on Linux.
 
