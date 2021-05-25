@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<!--
+Tooltip library https://atomiks.github.io/tippyjs/
+Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
+-->
+<html>
+	<head>
+		<title>MetaBatch Analyzer</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script type="text/javascript" src="jquery-1.11.1.min.js"></script>
+		<script type="text/javascript" src="knockout-3.2.0.js"></script>
+		<script type="text/javascript" src="knockout.mapping-2.4.1.js"></script>
+		<script type="text/javascript" src="knockout.validation.js"></script>
+		<script type="text/javascript" src="purl.js"></script>
+		<script type="text/javascript" src="mba.js"></script>
+		<script type="text/javascript" src="tippy.js"></script>
+		<script>
+			/* global ko */
+
+			// this makes sure that nothing gets called until page and required JS files are loaded
+			var appview = null;
+			var dappview;
+			$(document).ready(function ()
+			{
+				// Activate knockout-validation
+				ko.validation.init(setupKnockoutValidation());
+				appview = new AppViewModel();
+				dappview = appview;
+				// makes appview so we can check if all values are valid by calling appview.isValid()
+				appview = ko.validatedObservable(appview);
+				ko.applyBindings(appview);
+				initializeTooltips();
+			});
+
+			// This is a simple *viewmodel* - JavaScript that defines the data and behavior of your UI
+			function AppViewModel()
+			{
+				var self = this;
+
+				// Authorization and Authentication related information
+				self.currentUserName = ko.observable("");
+				self.availableUsers = ko.observableArray([]);
+				self.availableRoles = ko.observableArray([]);
+
+				self.makeGuiVisible = ko.observable(false); //.extend({ deferred: true });
+				// serverTitle is a config stored designation of server as DVLP, STAG, or PROD, or NONE
+				self.serverTitle = ko.observable("");
+				self.propAllowLogin = ko.observable("maybe"); //should be tru				// varaibles for setting up the RBN/EBNplus options
+
+				getMBAPropertiesCommon(self);
+
+				// Get the logged in user, if any, requires a page refresh from the login or logout options
+				getLoggedInUser(self);
+
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				//// START PAGE SPECIFIC ENTRIES
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+
+				////////////////////////////////////////////////////////////////
+				//// user interface variables/flags
+				////////////////////////////////////////////////////////////////
+
+				// select primary dataset type to use, default to userdata
+				self.selectedDatasetType = ko.observable("userdata");
+
+				self.goToNextPageState = function ()
+				{
+					// proceed to next status, which may include page changes
+					updateJobStatus(self, self.jobId(), "MBATCHCONFIG_START");
+				};
+
+				////////////////////////////////////////////////////////////////
+				//// defaults from server
+				////////////////////////////////////////////////////////////////
+
+				// Do an sync Ajax call to MBA properties to get defaults.
+				// The inline conditionals below check if theJson.theProperty got back a non-null value.
+				// If so, than the property observables are updated accordingly.
+				$.ajax(
+				{
+					type: "GET",
+					dataType: 'json',
+					async: false,
+					url: "MBAproperties",
+					cache: false,
+					success: function (theJson)
+					{
+					},
+					error: function (jqXHR, textStatus, errorThrown)
+					{
+						console.log("MBAproperties: " + textStatus + " and " + errorThrown);
+						alert("MBAproperties: " + textStatus + " and " + errorThrown);
+					}
+				});
+
+				// *************************************************************
+				// *************************************************************
+				// **** GDC Download code
+				// *************************************************************
+				// *************************************************************
+
+				self.gdcDatasetList = ko.observableArray([]);
+				self.gdcDatasetSelected = ko.observable(null);
+				/* gdcdata-start 
+				$.ajax(
+				{
+					type: "GET",
+					dataType: 'json',
+					async: false,
+					url: "GDCdatasets",
+					cache: false,
+					success: function (theJson)
+					{
+						self.gdcDatasetSelected(null);
+						self.gdcDatasetList(theJson);
+					},
+					beforeSend: function ()
+					{
+						disableInput(self);
+					},
+					complete: function ()
+					{
+						enableInput(self);
+					},
+					error: function (jqXHR, textStatus, errorThrown)
+					{
+						console.log("GDCdatasets :" + textStatus + " and " + errorThrown);
+						alert("GDCdatasets :" + textStatus + " and " + errorThrown);
+					}
+				});
+				 gdcdata-end */
+				// gdcCheckAgreement requires the user to complete a click-through Modal agreement in order to access GDC Options
+				self.gdcCheckAgreement = ko.observable(false);
+
+				// actually download files from GDC
+				self.goDownloadGDC = function (theIsAlternate)
+				{
+					$.ajax(
+					{
+						type: "GET",
+						dataType: 'text',
+						async: true,
+						url: "JOBGDCDownload",
+						cache: false,
+						data:
+						{
+							// pass Job Id and selected GDC download options
+							jobId: self.jobId(),
+							isAlternate: theIsAlternate
+							// TODO: add different stuff here
+						},
+						beforeSend: function ()
+						{
+							disableInput(self);
+						},
+						complete: function ()
+						{
+							enableInput(self);
+						},
+						success: function (theText)
+						{
+							refreshJobStatus(self, self.jobId());
+						},
+						error: function (jqXHR, textStatus, errorThrown)
+						{
+							console.log("JOBGDCDownload :" + textStatus + " and " + errorThrown);
+							alert("JOBGDCDownload :" + textStatus + " and " + errorThrown);
+						}
+					});
+				};
+				
+				// *************************************************************
+				// *************************************************************
+				// **** MW Download code
+				// *************************************************************
+				// *************************************************************
+
+				self.mwDatasetList = ko.observableArray([]);
+				self.mwDatasetSelected = ko.observable(null);
+				/* mwdata-start */
+				$.ajax(
+				{
+					type: "GET",
+					dataType: 'json',
+					async: false,
+					url: "MWdatasets",
+					cache: false,
+					success: function (theJson)
+					{
+						// Study <> Analysis <> Title
+						self.mwDatasetSelected(null);
+						self.mwDatasetList(theJson);
+					},
+					beforeSend: function ()
+					{
+						disableInput(self);
+					},
+					complete: function ()
+					{
+						enableInput(self);
+					},
+					error: function (jqXHR, textStatus, errorThrown)
+					{
+						console.log("MWdatasets :" + textStatus + " and " + errorThrown);
+						alert("MWdatasets :" + textStatus + " and " + errorThrown);
+					}
+				});
+				/* mwdata-end */
+				
+				// actually download files from MW
+				self.goDownloadMW = function (theIsAlternate)
+				{
+					$.ajax(
+					{
+						type: "GET",
+						dataType: 'text',
+						async: true,
+						url: "JOBMWDownload",
+						cache: false,
+						data:
+						{
+							// pass Job Id and selected GDC download options
+							jobId: self.jobId(),
+							isAlternate: theIsAlternate
+							// TODO: add different stuff here
+						},
+						beforeSend: function ()
+						{
+							disableInput(self);
+						},
+						complete: function ()
+						{
+							enableInput(self);
+						},
+						success: function (theText)
+						{
+							refreshJobStatus(self, self.jobId());
+						},
+						error: function (jqXHR, textStatus, errorThrown)
+						{
+							console.log("JOBMWDownload :" + textStatus + " and " + errorThrown);
+							alert("JOBMWDownload :" + textStatus + " and " + errorThrown);
+						}
+					});
+				};
+				
+				// *************************************************************
+				// *************************************************************
+				// ** Upload User Data Code
+				// *************************************************************
+				// *************************************************************
+
+				self.matrixIsSelected = ko.observable(false);
+				self.batchIsSelected = ko.observable(false);
+				self.biospecimenIsSelected = ko.observable(false);
+				self.clinicalIsSelected = ko.observable(false);
+				self.priLinkMapIsSelected = ko.observable(false);
+				self.secLinkMapIsSelected = ko.observable(false);
+
+				/**
+				 * A class managing a single user-file-upload option.
+				 * Has a one-to-one correspondance with a parameter sent to the servlets.
+				 */
+				class FileUploadProcessingOption
+				{
+					constructor(title, argName, description, defaultChecked, disabled)
+					{
+						this.title = title;                                 // The user-displayed option title.
+						this.argName = argName;                             // The arg name used when sending parameter to servlet.
+						this.description = description;                     // The arg description, which will be put in a tooltip.
+						this.checked = ko.observable(defaultChecked);       // Observable to reflect checked state.
+						this.default = defaultChecked;                      // Whether this arg is checked by default.
+						this.disabled = disabled;                           // Whether this arg is disabled, which also hides from user.
+					}
+
+					// Revert the checked observable to its original state
+					revertDefault()
+					{
+						this.checked(this.default);
+					}
+				}
+
+				/**
+				 * An Array-like class for managing a list of FileUploadProcessingOption
+				 * instances.
+				 */
+				class FileUploadOptionGroup extends Array
+				{
+					constructor()
+					{
+						super();
+						this.argNames = new Set();
+					}
+
+					// Override.
+					push(option)
+					{
+						if (option.constructor.name !== "FileUploadProcessingOption")
+						{
+							throw new Error("FileUploadOptionGroup only accepts FileUploadProcessingOption instances");
+						}
+						if (this.argNames.has(option.argName))
+						{
+							throw new Error(`This FileUploadOptionGroup already has an option with argName ${option.argName}`);
+						}
+						this.argNames.add(option.argName);
+						super.push(option);
+					}
+
+					// Revert every child FileUploadProcessingOption to its default state
+					revertdefaults()
+					{
+						(this).forEach((option) => {
+							option.revertDefault();
+						});
+					}
+
+					// Array tools like map, reduce, forEach, etc. work off Array instance.
+					static get [Symbol.species] ()
+					{
+						return Array;
+					}
+				}
+
+				// The post-upload options groups for UploadMatrix/UploadBatches
+				self.matrixOptions = new FileUploadOptionGroup();
+				self.batchesOptions = new FileUploadOptionGroup();
+				self.linkMapOptions = new FileUploadOptionGroup();
+				// title, argName, description, defaultChecked, disabled
+				self.matrixOptions.push(new FileUploadProcessingOption(
+						"Keep Original",
+						"keepOriginal",
+						"Keep a copy of original file before processing, labeled with the file name suffix '_original'.",
+						false,
+						true
+						));
+				self.matrixOptions.push(new FileUploadProcessingOption(
+						"Enforce Rectangle",
+						"noRectangle",
+						"Ensure each row of data has an entry for every header (uniform lengths).",
+						true,
+						true
+						));
+				self.matrixOptions.push(new FileUploadProcessingOption(
+						"Sort Rows",
+						"sortRows",
+						"Sort the row headers in descending alphabetical order.",
+						true,
+						true
+						));
+				self.matrixOptions.push(new FileUploadProcessingOption(
+						"Sort Columns",
+						"sortCols",
+						"Sort the column headers in descending alphabetical order.",
+						true,
+						true
+						));
+				self.batchesOptions.push(new FileUploadProcessingOption(
+						"Keep Original",
+						"keepOriginal",
+						"Keep a copy of original file before processing, labeled with the file name suffix '_original'.",
+						false,
+						true
+						));
+				self.batchesOptions.push(new FileUploadProcessingOption(
+						"Enforce Rectangle",
+						"noRectangle",
+						"Ensure each row of data has an entry for every header (uniform lengths).",
+						true,
+						true
+						));
+				self.batchesOptions.push(new FileUploadProcessingOption(
+						"Sort Rows",
+						"sortRows",
+						"Sort the row headers in descending alphabetical order.",
+						true,
+						true
+						));
+				self.batchesOptions.push(new FileUploadProcessingOption(
+						"Sort Columns",
+						"sortCols",
+						"Sort the column headers in descending alphabetical order",
+						true,
+						true
+						));
+				self.batchesOptions.push(new FileUploadProcessingOption(
+						"Filter Matrix",
+						"filterMatrix",
+						`Filter sample-ids in the matrix data file that do not appear in the batches file.
+							Note, using this option with "Create Missing Batches" will filter out sample-ids
+							not in the batches, and no new batches will be created.`,
+						false,
+						true
+						));
+				self.batchesOptions.push(new FileUploadProcessingOption(
+						"Create Missing Batches during upload",
+						"createMissingBatches",
+						`For any sample-ids in the matrix data file with no corresponding entry in the batches file,
+							create a batch entry with the sample-id in question, and with all fields set to 'Unkown'.
+							If options is left unchecked, then any extraneous batches are filtered out.`,
+						false,
+						false
+						));
+
+				/**
+				 * Utility function to assess if all items in an iterable are truthy. Can accept
+				 * an accessor functoin, which takes an item from the iterable and returns the property
+				 * to assess truthy-ness*/
+				self.all = function (iterable, accessor = (x) =>
+						{ return x; })
+				{
+					var b = true;
+					for (var i = 0; i < iterable.length; i++) {
+						b = b && accessor(iterable[i]);
+						if (!b)
+							return false;
+					}
+					return true;
+				};
+
+				// This functoin updates a passed observable with a bool indication of if the file input contains a file
+				self.toggleUploadButton = function (theObservableBool, data, event)
+				{
+					// Params:
+					// theFileSelectorId	:   The DOM input element id on which to search upon a channge event in the element.
+					// theObservableBool	:   The boolean observable set to either true or false depending
+					//			    on whether there is a file currently selected in the input element
+					var theFileSelectorId = event.target.id;
+					var fileSelect = document.getElementById(theFileSelectorId);
+					var files = fileSelect.files;
+					if (files.length === 1)
+					{
+						theObservableBool(true);
+					}
+					else
+					{
+						theObservableBool(false);
+					}
+				};
+
+				self.uploadFile = function (theIsAlternate, theFileInputId, theServlet, options, uploadAlert)
+				{
+					// theServlet should be UploadMatrix or UploadBatch
+					disableInput(self);
+					//document.body.classList.add("wait");
+
+					// make HTTP request
+					// The id of the relavent file input is stored and retrieved as a data attribute of the calling upload button
+					var fileSelect = document.getElementById(theFileInputId);
+					var files = fileSelect.files;
+					var file = files[0];
+					var jobId = self.jobId();
+
+					var formData = new FormData();
+
+					// Add the file to the request.
+					formData.append('jobId', jobId);
+					formData.append('file', file);
+					formData.append('isAlternate', theIsAlternate);
+					// Add each post-upload option with checked state value
+					options.forEach((opt) => {
+						formData.append(opt.argName, opt.checked());
+					});
+
+
+					// Set up the request.
+					var xhr = new XMLHttpRequest();
+
+					// define response handling
+					xhr.onload = function ()
+					{
+						if (this.responseText !== self.jobId())
+						{
+							alert("Failed: " + xhr.responseText);
+						}
+						else
+						{
+							document.getElementById("fileMatrixSelector").value = "";
+							document.getElementById("fileBatchSelector").value = "";
+						}
+						refreshJobStatus(self, self.jobId());
+						enableInput(self);
+						if (true===uploadAlert)
+						{
+							alert("uploaded");
+						}
+					};
+
+					// Open the connection.
+					xhr.open('POST', theServlet, false);
+
+					// send
+					xhr.send(formData);
+				};
+
+				self.uploadManifest = function(theIsAlternate, theSelectedDataset, theManifestType)
+				{
+					console.log("uploadManifest " + theIsAlternate + " and " + theSelectedDataset);
+					$.ajax(
+					{
+						type: "GET",
+						dataType: 'text',
+						async: false,
+						url: "UploadManifest",
+						cache: false,
+						data:
+						{
+							jobId: self.jobId(),
+							isAlternate: theIsAlternate,
+							dataset: String(theSelectedDataset),
+							dstype: theManifestType
+						},
+						beforeSend: function ()
+						{
+							disableInput(self);
+						},
+						complete: function ()
+						{
+							enableInput(self);
+						},
+						success: function (theText)
+						{
+							refreshJobStatus(self, self.jobId());
+						},
+						error: function (jqXHR, textStatus, errorThrown)
+						{
+							console.log("uploadManifest :" + textStatus + " and " + errorThrown);
+							alert("uploadManifest :" + textStatus + " and " + errorThrown);
+						}
+					});
+				};
+
+				// *************************************************************
+				// *************************************************************
+				// ** Step Last: Check for job id, read job status and data
+				// *************************************************************
+				// *************************************************************
+
+				// runs on initial load of page, to refresh job status if returning to previously bookmarked job
+				var myJob = getParameterByName("job");
+
+				self.jobId = ko.observable(myJob);
+				self.jobState = ko.observable("");
+				self.jobMessage = ko.observable("");
+				self.jobTail = ko.observableArray([]);
+				self.jobTag = ko.observable("");
+				self.jobOwner = ko.observable("");
+				self.jobEmail = ko.observable("");
+				self.jobAuthUsers = ko.observableArray([]);
+				self.jobAuthRoles = ko.observableArray([]);
+
+				// Reset the post-upload options for UploadMatrix/UploadBatches to default on jobState change
+				self.jobState.subscribe((newValue) => {
+					self.matrixOptions.revertdefaults();
+					self.batchesOptions.revertdefaults();
+				});
+
+				refreshJobStatus(self, self.jobId());
+
+				goToPageBasedOnState(self.jobState(), self.jobId());
+
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				//// END
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+
+				// this is used to prevent "flickering" characteristic on load with knockoutJS
+				self.makeGuiVisible(true);
+			} //End Appview Model
+		</script>
+		<link href="mba.css" rel="stylesheet" type="text/css">
+		<link href="tippy.css" rel="stylesheet" type="text/css">
+	</head>
+	<body style="display: none;" data-bind="visible: $root.makeGuiVisible()">
+		<div class="mdaServiceHeader">
+			<a href="https://bioinformatics.mdanderson.org/public-software/tcga-batch-effects/" target="_blank"><img class="mdaServiceHeaderLogo" src="mdandersonlogo300x54.png" alt="MDA Logo"></a>
+			<span class="mdaServiceHeaderTitle">
+				MetaBatch Analyzer
+				<span class="mdaServiceHeaderTitle" style="margin: 0; padding: 0;" data-bind="text:$root.serverTitle()"></span>
+				<small>BEA_VERSION_TIMESTAMP</small>
+				<small style="float: right;">
+					<a href="MBatch_04-99_Statistics.html" target="_blank">Statistics</a>
+					/
+					<a href="https://github.com/MD-Anderson-Bioinformatics/MetaBatchAnalyzer/tree/master/docs" target="_blank">Help</a>
+					/
+					<a href="https://github.com/MD-Anderson-Bioinformatics/MetaBatchAnalyzer" target="_blank">GitHub</a>
+				</small>
+			</span>
+		</div>
+		<hr>
+		<span>
+			<button class="buttons homeButton" id="homeButton" data-bind="click: function(data, event) { goHome(); }" >Home</button>
+			<button class="buttons loginButton" id="loginButton" data-bind="visible: 'true'===$root.propAllowLogin()&&''===$root.currentUserName(),click: function(data, event) { goAuthUpdate(); }" >Login</button>
+			<button class="buttons logoutButton" id="logoutButton" data-bind="visible: !(''===$root.currentUserName()),click: function(data, event) { goAuthOut(); }" >Logout</button>
+			<span class="textTitles" data-bind="text:$root.currentUserName()"></span>&nbsp;
+			<small>
+				<strong>Job Id:</strong><span data-bind="text:$root.jobId()"></span>&nbsp;
+				<strong>Job State:</strong><span data-bind="text:$root.jobState()"></span>&nbsp;
+				<strong>Job Message:</strong><span data-bind="text:$root.jobMessage()"></span>&nbsp;
+			</small>
+			<button class="buttons editButton" id="editButton" data-bind="click: function(data, event) { goToEditPage($root.jobId()); }" >Edit Details</button>
+		</span>
+		<hr>
+		<!-- **** START: Primary Notices *********************************** -->
+		<div class="roundedBox">
+			<span  data-bind="visible: ('NEWJOB_START'===$root.jobState())">
+				<strong>Step 1.a.: Specify Primary Dataset</strong>
+				<br>
+				Alternative data source,<br><a target="_blank" href="https://bioinformatics.mdanderson.org/StdMW/">Download Metabolomics Workbench Data here</a><br>Use the matrix_data.tsv, batch.tsv, and ngchm_link_map.tsv files.<br>The row_col_types.tsv file has the row and column types for the NGCHM.<br><br>
+				<select class="largeInputAndSelect" data-bind="value: $root.selectedDatasetType">
+					<!-- gdcdata-start <option value="gdcdata">GDC Downloaded Data</option> gdcdata-end -->
+					<!-- mwdata-start --><option value="mwdata">Metabolomics Workbench Data</option><!-- mwdata-end -->
+					<option value="userdata">User Uploaded Data</option>
+				</select>
+			</span>State:
+			<span  data-bind="visible: ('NEWJOB_START'===$root.jobState())">
+				<strong>&nbsp;<span data-bind="text:$root.jobMessage()"></span></strong>
+			</span>
+			<span  data-bind="visible: ('NEWJOB_PRIMARY_DONE'===$root.jobState()) || ('NEWJOB_DONE'===$root.jobState()) || ($root.jobState().startsWith('NEWJOB_SECONDARY_'))">
+				<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Step 1.a.: Specify Primary Dataset Complete</strong>
+			</span>
+			<span  data-bind="visible: ('NEWJOB_PRIMARY_GDC_MANIFEST'===$root.jobState())">
+				<strong>&nbsp;Step 1.a.: Request GDC Download</strong>
+			</span>
+			<span  data-bind="visible: ('NEWJOB_PRIMARY_GDC_WAIT'===$root.jobState())">
+				<span class="spinner"></span><strong>&nbsp;Step 1.a.: GDC Download Queued</strong>
+			</span>
+			<span  data-bind="visible: ('NEWJOB_PRIMARY_GDCRUN_WAIT'===$root.jobState())">
+				<span class="spinner"></span><strong>&nbsp;Step 1.a.: GDC Download in Progress</strong>
+			</span>
+			<span  data-bind="visible: ('NEWJOB_PRIMARY_MW_MANIFEST'===$root.jobState())">
+				<strong>&nbsp;Step 1.a.: Request MW Download</strong>
+			</span>
+			<span  data-bind="visible: ('NEWJOB_PRIMARY_MW_WAIT'===$root.jobState())">
+				<span class="spinner"></span><strong>&nbsp;Step 1.a.: MW Download Queued</strong>
+			</span>
+			<span  data-bind="visible: ('NEWJOB_PRIMARY_MWRUN_WAIT'===$root.jobState())">
+				<span class="spinner"></span><strong>&nbsp;Step 1.a.: MW Download in Progress</strong>
+			</span>
+			<span  data-bind="visible: ('NEWJOB_PRIMARY_USER_MATRIX'===$root.jobState())">
+				<strong>&nbsp;Step 1.a.: User Data Upload in Progress</strong>
+				<br><br>Upload Matrix and Batch files. Optionally upload Link Map file.
+			</span>
+			<div data-bind="visible: 'NEWJOB_DONE'===$root.jobState()">
+				<button class="buttons" id="proceedToNextStepFromPrimary" data-bind="click: function(data, event) { $root.goToNextPageState(); }">Proceed to MBatch Configuration</button>
+			</div>
+		</div>
+		<!-- **** END: Primary Notices ************************************* -->
+		<!-- **** START: Secondary Notices *********************************** -->
+		<div class="roundedBox" data-bind="visible: ('NEWJOB_PRIMARY_DONE'===$root.jobState())||($root.jobState().startsWith('NEWJOB_SECONDARY_'))">
+			<span data-bind="visible: ('NEWJOB_PRIMARY_DONE'===$root.jobState())">
+				<strong>Step 1.b.: Specify Secondary Dataset</strong>
+				<br><small>Some correction algorithms use two datasets. Use the Proceed button if you do not need a second dataset.</small>
+				<br>
+				<select class="largeInputAndSelect" data-bind="value: $root.selectedDatasetType">
+					<!-- gdcdata-start <option value="gdcdata">GDC Downloaded Data</option> gdcdata-end -->
+					<!-- mwdata-start --><option value="mwdata">Metabolomics Workbench Data</option><!-- mwdata-end -->
+					<option value="userdata">User Uploaded Data</option>
+				</select>
+				<button class="buttons" id="goToNextPageStatesetButton" data-bind="click: function(data, event) { $root.goToNextPageState(); }">Proceed without Secondary Dataset</button>				
+			</span>
+			<span  data-bind="visible: ('NEWJOB_Secondary_GDC_MANIFEST'===$root.jobState())">
+				<strong>&nbsp;Step 1.b.: Request GDC Download</strong>
+			</span>
+			<span  data-bind="visible: (('NEWJOB_SECONDARY_DONE'===$root.jobState()) || ('NEWJOB_DONE'===$root.jobState()))">
+				<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Step 1.b.: Specify Secondary Dataset Complete</strong>
+			</span>
+			<span  data-bind="visible: ('NEWJOB_SECONDARY_GDC_WAIT'===$root.jobState())">
+				<span class="spinner"></span><strong>&nbsp;Step 1.b.: GDC Download in Progress</strong>
+			</span>
+			<span  data-bind="visible: ('NEWJOB_SECONDARY_USER_MATRIX'===$root.jobState())">
+				<strong>&nbsp;Step 1.b.: User Data Upload in Progress</strong>
+			</span>
+			<div data-bind="visible: 'NEWJOB_SECONDARY_DONE'===$root.jobState()">
+				<button class="buttons" id="proceedToNextStepFromSecondary" data-bind="click: function(data, event) { $root.goToNextPageState(); }">Proceed to MBatch Configuration</button>
+			</div>
+		</div>
+		<!-- **** END: Secondary Notices ************************************* -->
+		<!-- **** START: Tail *********************************** -->
+		<div class="roundedBox" data-bind="visible: ($root.jobTail().length>1)">
+			Log File Tail (last 100 lines):<br>
+			<select class="tail_scroll" id="tail_scroll" data-bind="options: $root.jobTail, value: $root.jobTail()[$root.jobTail().length-1]" size='10' multiple='false'></select>    
+		</div>
+		<!-- **** END: Tail ************************************* -->
+		<!-- **** START: select GDC Downloaded data ************************ -->
+		<div class="gdcCheckAgreementModal" data-bind="visible: ('gdcdata'===$root.selectedDatasetType()) && !($root.gdcCheckAgreement())">
+			<div style="width: 300px;" class="roundedBox modalContent">
+				<strong>Agree to GDC Data Guidelines</strong><br>
+				<p>By downloading, analyzing, and/or using TCGA data for publication purposes,
+					the user accepts the data use restrictions and requirements as outlined in
+					the TCGA Publication Guidelines. See <a target="_blank" href="https://docs.gdc.cancer.gov/Data/Release_Notes/Data_Release_Notes/">https://docs.gdc.cancer.gov/Data/Release_Notes/Data_Release_Notes/</a> 
+					for additional information. 
+				<p>
+					<input type="checkbox" data-bind="checked: $root.gdcCheckAgreement"/>I agree
+			</div>
+		</div>
+		<div class="roundedBox" data-bind="visible: (('gdcdata'===$root.selectedDatasetType()&&('NEWJOB_START'===$root.jobState()))||(('NEWJOB_PRIMARY_GDC_MANIFEST'===$root.jobState())||('NEWJOB_SECONDARY_GDC_MANIFEST'===$root.jobState())))">
+			<strong>Use GDC Downloaded Data (Current)</strong>
+			<div style="float: right;" class="tooltip">
+				<img id="tooltipImage_selectedDatasetType_gdcdata" title="GDC Data Option" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
+				<span id="tooltipContent_selectedDatasetType_gdcdata" class="tooltiptext">GDC Download Option:<br><br>
+					Select dataset from GDC to download.
+				</span>
+			</div>
+			<table>
+				<tbody>
+					<tr  data-bind="visible: ('NEWJOB_START'===$root.jobState())||('NEWJOB_PRIMARY_DONE'===$root.jobState())">
+						<td>GDC Dataset Selection:</td>
+						<td>
+							<select class="veryWideInputAndSelect" data-bind="options: $root.gdcDatasetList, selectedOptions: $root.gdcDatasetSelected"></select>
+						</td>
+					</tr>
+					<tr  data-bind="visible: ('NEWJOB_START'===$root.jobState())||('NEWJOB_PRIMARY_DONE'===$root.jobState())">
+						<td>Selected Dataset:</td>
+						<td>
+							<span data-bind="text:$root.gdcDatasetSelected()"></span>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span  data-bind="visible: ('NEWJOB_PRIMARY_GDC_MANIFEST'===$root.jobState())">
+								<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Primary GDC Manifest Files Uploaded</strong>
+							</span>
+							<span  data-bind="visible: ('NEWJOB_SECONDARY_GDC_MANIFEST'===$root.jobState())">
+								<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Secondary GDC Manifest Files Uploaded</strong>
+							</span>
+							<button class="buttons" id="gdcManifestFileSelectorButtonPrimary" 
+									data-bind="click: function(data, event) { $root.uploadManifest('NO', $root.gdcDatasetSelected(), 'gdc'); }, visible: ('NEWJOB_START'===$root.jobState())">Select Primary GDC Selection</button>
+							<button class="buttons" id="gdcManifestFileSelectorButtonSecondary" 
+									data-bind="click: function(data, event) { $root.uploadManifest('YES', $root.gdcDatasetSelected(), 'gdc'); }, visible: ('NEWJOB_PRIMARY_DONE'===$root.jobState())">Select Secondary GDC Selection</button>
+						</td>
+						<td>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<br>
+			<div class="marginLeft10px marginTop10px">
+				<span class="marginTop10px">*For More Information on GDC Terminology: <a target="_blank" href="https://docs.gdc.cancer.gov/Data/Introduction/">https://docs.gdc.cancer.gov/Data/Introduction/</a></span>
+			</div>
+			<button class="buttons inlineblock marginTop10px marginLeft10px" id="selectedPrimaryDatasetType_gdcdata_button" 
+					data-bind="click: function(data, event) { $root.goDownloadGDC('NO'); }, enable: ('NEWJOB_PRIMARY_GDC_MANIFEST'===$root.jobState()), 
+								visible: (('NEWJOB_PRIMARY_GDC_MANIFEST'===$root.jobState()) || ('NEWJOB_START'===$root.jobState()))">Use Primary Downloaded GDC Data</button>
+			<button class="buttons inlineblock marginTop10px marginLeft10px" id="selectedSecondaryDatasetType_gdcdata_button" 
+					data-bind="click: function(data, event) { $root.goDownloadGDC('YES'); }, enable: ('NEWJOB_SECONDARY_GDC_MANIFEST'===$root.jobState()), 
+								visible: (('NEWJOB_SECONDARY_GDC_MANIFEST'===$root.jobState()) || ('NEWJOB_PRIMARY_DONE'===$root.jobState()))">Use Secondary Downloaded GDC Data</button>
+		</div>
+		<!-- **** END: select GDC Downloaded data ************************** -->
+		<!-- **** START: select MW Downloaded data ************************ -->
+		<div class="roundedBox" data-bind="visible: (('mwdata'===$root.selectedDatasetType()&&('NEWJOB_START'===$root.jobState()))||(('NEWJOB_PRIMARY_MW_MANIFEST'===$root.jobState())||('NEWJOB_SECONDARY_MW_MANIFEST'===$root.jobState())))">
+			<strong>Use Metabolomics Workbench Downloaded Data</strong>
+			<div style="float: right;" class="tooltip">
+				<img id="tooltipImage_selectedDatasetType_mwdata" title="MW Data Option" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
+				<span id="tooltipContent_selectedDatasetType_mwdata" class="tooltiptext">MW Download Option:<br><br>
+					Select dataset from MW to download.
+				</span>
+			</div>
+			<table>
+				<tbody>
+					<tr  data-bind="visible: ('NEWJOB_START'===$root.jobState())||('NEWJOB_PRIMARY_DONE'===$root.jobState())">
+						<td>MW Dataset Selection:</td>
+						<td>
+							<select class="veryWideInputAndSelect" data-bind="options: $root.mwDatasetList, selectedOptions: $root.mwDatasetSelected"></select>
+						</td>
+					</tr>
+					<tr  data-bind="visible: ('NEWJOB_START'===$root.jobState())||('NEWJOB_PRIMARY_DONE'===$root.jobState())">
+						<td>Selected Dataset:</td>
+						<td>
+							<span data-bind="text:$root.mwDatasetSelected()"></span>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<span  data-bind="visible: ('NEWJOB_PRIMARY_MW_MANIFEST'===$root.jobState())">
+								<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Primary MW Manifest Files Uploaded</strong>
+							</span>
+							<span  data-bind="visible: ('NEWJOB_SECONDARY_MW_MANIFEST'===$root.jobState())">
+								<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Secondary MW Manifest Files Uploaded</strong>
+							</span>
+							<button class="buttons" id="mwManifestFileSelectorButtonPrimary" 
+									data-bind="click: function(data, event) { $root.uploadManifest('NO', $root.mwDatasetSelected(), 'mw'); }, visible: ('NEWJOB_START'===$root.jobState())">Select Primary MW Selection</button>
+							<button class="buttons" id="mwManifestFileSelectorButtonSecondary" 
+									data-bind="click: function(data, event) { $root.uploadManifest('YES', $root.mwDatasetSelected(), 'mw'); }, visible: ('NEWJOB_PRIMARY_DONE'===$root.jobState())">Select Secondary MW Selection</button>
+						</td>
+						<td>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<br>
+			<div class="marginLeft10px marginTop10px">
+				<span class="marginTop10px">*For More Information on MW Terminology: <a target="_blank" href="https://www.metabolomicsworkbench.org/">https://www.metabolomicsworkbench.org/</a></span>
+			</div>
+			<button class="buttons inlineblock marginTop10px marginLeft10px" id="selectedPrimaryDatasetType_mwdata_button" 
+					data-bind="click: function(data, event) { $root.goDownloadMW('NO'); }, enable: ('NEWJOB_PRIMARY_MW_MANIFEST'===$root.jobState()), 
+								visible: (('NEWJOB_PRIMARY_MW_MANIFEST'===$root.jobState()) || ('NEWJOB_START'===$root.jobState()))">Use Primary Downloaded MW Data</button>
+			<button class="buttons inlineblock marginTop10px marginLeft10px" id="selectedSecondaryDatasetType_mwdata_button" 
+					data-bind="click: function(data, event) { $root.goDownloadMW('YES'); }, enable: ('NEWJOB_SECONDARY_MW_MANIFEST'===$root.jobState()), 
+								visible: (('NEWJOB_SECONDARY_MW_MANIFEST'===$root.jobState()) || ('NEWJOB_PRIMARY_DONE'===$root.jobState()))">Use Secondary Downloaded MW Data</button>
+		</div>
+		<!-- **** END: select MW Downloaded data ************************** -->
+		<!-- **** START: select User Uploaded data ************************* -->
+		<div class="roundedBox" data-bind="visible: (('userdata'===$root.selectedDatasetType())&&(('NEWJOB_START'===$root.jobState())||('NEWJOB_PRIMARY_USER_MATRIX'===$root.jobState())||('NEWJOB_PRIMARY_DONE'===$root.jobState())||('NEWJOB_SECONDARY_USER_MATRIX'===$root.jobState())))">
+			<strong>Upload User Data Here</strong>
+			<div class="tooltip inlineblock">
+				<img id="tooltipImage_USROption2" title="User Data Option" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
+				<div id="tooltipContent_USROption2" class="tooltiptext">
+					User Data:
+					<div class="marginTop10px">
+						Requires Two Files: a Matrix File, and a Batch File.
+						Both should be formatted as a matrix of tab separated values.
+						The matrix file should contain a blank entry at position (1,1).
+						<div class="marginTop10px">
+							Example Matrix File Format:<br>
+							<div class="marginLeft10px marginTop10px">
+								<table class="userDataTooltipTable" style="width:275px;"> 
+									<tbody>
+										<tr><td></td><td>TCGA-1</td><td>TCGA-2</td><td>TCGA-3</td><td>...</td></tr>
+										<tr><td>ABCA2</td><td>1</td><td>2</td><td>3</td><td>...</td></tr>
+										<tr><td>A2ML1</td><td>4</td><td>5</td><td>6</td><td>...</td></tr>
+										<tr><td>AACS</td><td>7</td><td>8</td><td>9</td><td>...</td></tr>
+										<tr><td>AATF</td><td>10</td><td>11</td><td>12</td><td>...</td></tr>
+										<tr><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+						<div class="marginTop10px">
+							Example Batch File Format:<br>
+							<div class="marginLeft10px marginTop10px">
+								<table class="userDataTooltipTable" style="width:275px;">
+									<tbody>
+										<tr><td>Sample</td><td>Type</td><td>BatchId</td><td>PlateId</td><td>...</td></tr>
+										<tr><td>S1</td><td>T1</td><td>B1</td><td>P1</td><td>...</td></tr>
+										<tr><td>S2</td><td>T2</td><td>B2</td><td>P2</td><td>...</td></tr>
+										<tr><td>S3</td><td>T3</td><td>B4</td><td>P3</td><td>...</td></tr>
+										<tr><td>S4</td><td>T4</td><td>B5</td><td>P4</td><td>...</td></tr>
+										<tr><td>S5</td><td>T5</td><td>B6</td><td>P5</td><td>...</td></tr>
+										<tr><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<table>
+				<tbody>
+					<tr>
+						<td>Matrix File Upload:</td>
+						<td>
+							<input id="fileMatrixSelector" type="file" name="file" style="border: none;" data-bind="event: { change: function(data,event){ $root.toggleUploadButton($root.matrixIsSelected, data, event); } }" />
+						</td>
+						<td>
+							<span  data-bind="visible: ('NEWJOB_PRIMARY_USER_MATRIX'===$root.jobState())">
+								<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Primary Matrix Uploaded</strong>
+							</span>
+							<span  data-bind="visible: ('NEWJOB_SECONDARY_USER_MATRIX'===$root.jobState())">
+								<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Secondary Matrix Uploaded</strong>
+							</span>
+							<button class="buttons" id="matrixButtonUploadFilePrimary" 
+									data-bind="click: function(data, event) { $root.uploadFile('NO', 'fileMatrixSelector', 'UploadMatrix', $root.matrixOptions); }, visible: (true===$root.matrixIsSelected())&&('NEWJOB_START'===$root.jobState())">Upload Primary Matrix</button>
+							<button class="buttons" id="matrixButtonUploadFileSecondary" 
+									data-bind="click: function(data, event) { $root.uploadFile('YES', 'fileMatrixSelector', 'UploadMatrix', $root.matrixOptions); }, visible: (true===$root.matrixIsSelected())&&('NEWJOB_PRIMARY_DONE'===$root.jobState())">Upload Secondary Matrix</button>
+						</td>
+					</tr>
+					<tr data-bind="visible: ('NEWJOB_SECONDARY_USER_MATRIX'===$root.jobState()) || ($root.jobState().startsWith('NEWJOB_PRIMARY_USER_MATRIX'))">
+						<td>Batch File Upload:</td>
+						<td>
+							<input id="fileBatchSelector" type="file" name="file" style="border: none;" data-bind="event: { change: function(data,event){ $root.toggleUploadButton($root.batchIsSelected, data, event); } }" />
+						</td>
+						<td>
+							<span  data-bind="visible: ('NEWJOB_PRIMARY_DONE'===$root.jobState())">
+								<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Primary Batch File Uploaded</strong>
+							</span>
+							<span  data-bind="visible: ('NEWJOB_SECONDARY_DONE'===$root.jobState())">
+								<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Secondary Batch File Uploaded</strong>
+							</span>
+							<button class="buttons" id="batchButtonUploadFilePrimary" 
+									data-bind="click: function(data, event) { $root.uploadFile('NO', 'fileBatchSelector', 'UploadBatch', $root.batchesOptions); }, visible: (true===$root.batchIsSelected())&&('NEWJOB_PRIMARY_USER_MATRIX'===$root.jobState())">Upload Primary Batch File</button>
+							<button class="buttons" id="batchButtonUploadFileSecondary" 
+									data-bind="click: function(data, event) { $root.uploadFile('YES', 'fileBatchSelector', 'UploadBatch', $root.batchesOptions); }, visible: (true===$root.batchIsSelected())&&('NEWJOB_SECONDARY_USER_MATRIX'===$root.jobState())">Upload Secondary Batch File</button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<!-- **** User Uploaded Matrix Post-Uploaded Options ************** -->
+			<div data-bind="visible: ('NEWJOB_START'===$root.jobState() || 'NEWJOB_PRIMARY_DONE'===$root.jobState()) && !$root.all($root.matrixOptions, i => i.disabled)">
+				<table class="mbatchconfigInputTable">
+					<tbody data-bind="foreach: { data: $root.matrixOptions, as: 'option' }">
+						<tr data-bind="style: { display: option.disabled ? 'none' : 'block' }">
+							<td data-bind="text: option.title" style="text-align: left"></td>
+							<td><input type="checkbox" data-bind="checked: option.checked"/></td>
+							<td>
+								<div class="tooltip">
+									<img src="images/Tooltip_icon.png" data-theme="myTooltipTheme" class="guiIconDimensions" alt="More Info"
+										 data-bind="attr: { id: 'tooltipImage_' + option.argName, title: option.title }" />
+									<div class="tooltiptext" data-bind="attr: { id: 'tooltipContent_' + option.argName }, text: option.description"></div>
+								</div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<!-- **** User Uploaded Batches Post-Uploaded Options **************** -->
+			<div data-bind="visible:('NEWJOB_PRIMARY_USER_MATRIX'===$root.jobState() || 'NEWJOB_SECONDARY_USER_MATRIX'===$root.jobState()) && !$root.all($root.batchesOptions, i => i.disabled)">
+				<table class="mbatchconfigInputTable">
+					<tbody data-bind="foreach: { data: $root.batchesOptions, as: 'option' }">
+						<tr data-bind="style: { display: option.disabled ? 'none' : 'block' }">
+							<td data-bind="text: option.title" style="text-align: left"></td>
+							<td><input type="checkbox" data-bind="checked: option.checked"/></td>
+							<td>
+								<div class="tooltip">
+									<img src="images/Tooltip_icon.png" data-theme="myTooltipTheme" class="guiIconDimensions" alt="More Info"
+										 data-bind="attr: { id: 'tooltipImage_' + option.argName, title: option.title }" />
+									<div class="tooltiptext" data-bind="attr: { id: 'tooltipContent_' + option.argName }, text: option.description"></div>
+								</div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<!-- **** Optional User Uploaded NGCHM Files ************** -->
+			<div data-bind="visible: (('userdata'===$root.selectedDatasetType())&&(('NEWJOB_START'===$root.jobState())||('NEWJOB_PRIMARY_USER_MATRIX'===$root.jobState())||('NEWJOB_PRIMARY_DONE'===$root.jobState())||('NEWJOB_SECONDARY_USER_MATRIX'===$root.jobState())))">
+				<strong>Upload Optional NGCHM Link Map File Here</strong>
+				<div class="tooltip inlineblock">
+					<img id="tooltipImage_NGCHMFiles" title="Optional User NGCHM File Options" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
+					<div id="tooltipContent_NGCHMFiles" class="tooltiptext">
+						User Data:
+						<div class="marginTop10px">
+							Optional file: for NGCHMs that have multiple link-out options, this lets the user override the 
+							default feature labels, and replace them with pipe-delimited optional link. Should be in the 
+							same order as matrix file.
+							<div class="marginTop10px">
+								Example Link Map File Format:<br>
+								<div class="marginLeft10px marginTop10px">
+									<table class="userDataTooltipTable"> 
+										<tbody>
+											<tr><td style="font-size: xx-small;">feature</td><td style="font-size: xx-small;">linkout</td></tr>
+											<tr><td style="font-size: xx-small;">1-methylnicotinamide</td><td style="font-size: xx-small;">1-methylnicotinamide|1-Methyl nicotinamide|457|67157|HMDB0000699|C02918|16797|</td></tr>
+											<tr><td style="font-size: xx-small;">2-deoxyadenosine</td><td style="font-size: xx-small;">2-deoxyadenosine|Deoxyadenosine|13730|37076|HMDB0000101|C00559|17256|DEOXYADENOSINE</td></tr>
+											<tr><td style="font-size: xx-small;">2-deoxycytidine</td><td style="font-size: xx-small;">2-deoxycytidine|Deoxyadenosine|13730|37076|HMDB0000101|C00559|17256|DEOXYADENOSINE</td></tr>
+											<tr><td style="font-size: xx-small;">5-HIAA</td><td style="font-size: xx-small;">5-HIAA|5-Hydroxyindoleacetic acid|1826|37412|HMDB0000763|C05635|27823|5-HYDROXYINDOLE_ACETATE</td></tr>
+											<tr><td style="font-size: xx-small;">5-adenosylhomocysteine</td><td style="font-size: xx-small;">5-adenosylhomocysteine|Deoxyadenosine|13730|37076|HMDB0000101|C00559|17256|DEOXYADENOSINE</td></tr>
+											<tr><td style="font-size: xx-small;">GABA</td><td style="font-size: xx-small;">GABA|gamma-Aminobutyric acid|119|1864|HMDB0000112|C00334|16865|4-AMINO-BUTYRATE</td></tr>
+											<tr><td style="font-size: xx-small;">...</td><td style="font-size: xx-small;">...</td></tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<table class="mbatchconfigInputTable">
+					<tbody>
+						<tr>
+							<td>Link Map File</td>
+							<td>
+								<input id="filePrimaryLinkMapSelector" type="file" name="file" style="border: none;" data-bind="event: { change: function(data,event){ $root.toggleUploadButton($root.priLinkMapIsSelected, data, event); } }" />
+							</td>
+							<td>
+								<button class="buttons" id="filePrimaryLinkMapSelectorButton" 
+										data-bind="click: function(data, event) { $root.uploadFile('NO', 'filePrimaryLinkMapSelector', 'UploadLinkMap', $root.linkMapOptions, true); }, visible: (true===$root.priLinkMapIsSelected())">Upload Link Map File</button>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<!-- **** END: select User Uploaded data *************************** -->
+	</body>
+</html>
+

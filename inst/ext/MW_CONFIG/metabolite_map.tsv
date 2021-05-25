@@ -1,0 +1,9 @@
+link_type	header_name
+bio.metabolite.MW.name	mtblt.metabolite_name
+bio.metabolite.refmet	refmet.refmet_name
+bio.compound.pubchem	refmet.pubchem_cid
+bio.metabolite.MW.regno	oi.regno
+bio.metabolite.hmdb	oi.hmdb_id
+bio.compound.kegg	oi.kegg_id
+bio.compound.chebi	oi.chebi_id
+bio.compound.metacyc	oi.metacyc_id

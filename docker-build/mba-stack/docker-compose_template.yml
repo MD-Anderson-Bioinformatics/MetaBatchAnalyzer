@@ -1,0 +1,122 @@
+# this is the docker-compose version
+version: '3.0'
+
+# file version BEA_VERSION_TIMESTAMP
+
+
+networks:
+    # network for this compose stack
+    mba_network_<ENVIRON>:
+        driver: bridge
+#SUBNET        ipam:
+#SUBNET            config:
+#SUBNET            - subnet: <SUBNET>
+services:
+    # mbaService runs tomcat with MetaBatch Analyzer
+    mbaService:
+        networks:
+            - mba_network_<ENVIRON>
+        # restart this container if it crashes
+        restart: always
+        # build from sub-directory and Dockerfile
+        build:
+            context: ./mba-image
+            dockerfile: Dockerfile
+        container_name: mbaMBA_cont_<ENVIRON>
+        image: <MBA-IMAGEURL>
+        volumes:
+            # external:internal
+            # file with properties and job list for this installation
+            - <PROP-DIR>:/MBA/PROPS
+            # directory for output from MBA, GDCDownload, and MBatch Results
+            - <JOB-OUTPUT-DIR>:/MBA/OUTPUT
+            # directory for the Batch Effects Website (must be on Linux file system since links to /MBA/OUTOUT are created here)
+            - <WEBSITE-DIR>:/MBA/WEBSITE
+            # read-only directory for HG38 map
+            - <UTIL-DIR>:/MBA/UTILS:ro
+            # SMW paths for Metabolomics Workbench DAta
+            - <CONFIGPATH>:/SMW/MW_CACHE:ro
+            - <ZIPTMPPATH>:/SMW/MW_ZIP
+            # read-only file to set time and timezone to same in image as on server
+            - /etc/localtime:/etc/localtime:ro
+            - /etc/timezone:/etc/timezone:ro
+        ports:
+            # (outside)host port:container port(inside)
+            - "<MBA-PORT>:8080"
+        tty: true
+    mbatchService:
+        networks:
+            - mba_network_<ENVIRON>
+        # restart this container if it crashes
+        restart: always
+        build:
+            # build from sub-directory and Dockerfile
+            context: ./mbatch-image
+            dockerfile: Dockerfile
+        container_name: mbatchMBA_cont_<ENVIRON>
+        image: <MBATCH-IMAGEURL>
+        volumes:
+            # directory for output from MBA, GDCDownload, and MBatch Results external:internal
+            - <JOB-OUTPUT-DIR>:/MBA/OUTPUT
+            # directory for the Batch Effects Website (must be on Linux file system since links to /MBA/OUTOUT are created here)
+            - <WEBSITE-DIR>:/MBA/WEBSITE
+            # SMW paths for Metabolomics Workbench DAta
+            - <CONFIGPATH>:/SMW/MW_CACHE:ro
+            - <ZIPTMPPATH>:/SMW/MW_ZIP
+            # read-only file to set time and timezone to same in image as on server
+            - /etc/localtime:/etc/localtime:ro
+            - /etc/timezone:/etc/timezone:ro
+        links:
+            # links required to talk to http://mbaService:8080/
+            - mbaService
+    gdcService:
+        container_name: gdcMBA_cont_<ENVIRON>
+        # update :latest to desired version
+        image: <GDC-IMAGEURL>
+        # restart this container if it crashes
+        restart: always
+        build:
+            # build from sub-directory and Dockerfile
+            context: ./dc-image
+            dockerfile: Dockerfile
+        networks:
+            - mba_network_<ENVIRON>
+        volumes:
+            # directory for output from MBA, GDCDownload, and MBatch Results external:internal
+            - <JOB-OUTPUT-DIR>:/MBA/OUTPUT
+            # directory for the Batch Effects Website (must be on Linux file system since links to /MBA/OUTOUT are created here)
+            - <WEBSITE-DIR>:/MBA/WEBSITE
+            # SMW paths for Metabolomics Workbench DAta
+            - <CONFIGPATH>:/SMW/MW_CACHE:ro
+            - <ZIPTMPPATH>:/SMW/MW_ZIP
+            # read-only file to set time and timezone to same in image as on server
+            - /etc/localtime:/etc/localtime:ro
+            - /etc/timezone:/etc/timezone:ro
+        links:
+            # links required to talk to http://mbaService:8080/
+            - mbaService
+    bevService:
+        networks:
+            - mba_network_<ENVIRON>
+        # restart this container if it crashes
+        restart: always
+        build:
+            # build from sub-directory and Dockerfile
+            context: ./bev-image
+            dockerfile: Dockerfile
+        container_name: bevMBA_cont_<ENVIRON>
+        # update :latest to desired version
+        image: <BEV-IMAGEURL>
+        volumes:
+            # external:internal
+            # directory for dap.properties
+            - <PROP-DIR>:/DAPI/CONFIG:ro
+            # directory for "website" output
+            - <WEBSITE-DIR>:/DAPI/DATA:ro
+            # read-only file to set time and timezone to same in image as on server
+            - /etc/localtime:/etc/localtime:ro
+            - /etc/timezone:/etc/timezone:ro
+        ports:
+            # (outside)host port:container port(inside)
+            - "<BEV-PORT>:8080"
+

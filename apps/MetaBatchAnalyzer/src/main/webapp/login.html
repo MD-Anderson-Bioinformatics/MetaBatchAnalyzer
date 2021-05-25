@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>MetaBatch Analyzer Login</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script type="text/javascript" src="jquery-1.11.1.min.js"></script>
+		<script>
+			// gets the parameters from the URL given a parameter name
+			// using just JavaScript
+			function getParameterByName(theName)
+			{
+				var url = window.location.href;
+				theName = theName.replace(/[\[\]]/g, "\\$&");
+				var regex = new RegExp("[?&]" + theName + "(=([^&#]*)|&|#|$)");
+				var results = regex.exec(url);
+				if (!results)
+				{
+					return null;
+				}
+				else if (!results[2])
+				{
+					return '';
+				}
+				return decodeURIComponent(results[2].replace(/\+/g, " "));
+			}
+			
+			// this makes sure that nothing gets called until page and require JS files are loaded
+			$(document).ready(function()
+			{
+				var loginFailed = getParameterByName("failed");
+				if ("true"===loginFailed)
+				{
+					document.getElementById('FAILED_LOGIN').style.display = "block";
+				}
+			});
+		</script>
+		<link href="mba.css" rel="stylesheet" type="text/css">
+	</head>
+	<body>
+		<div class="mdaServiceHeader">
+			<img class="mdaServiceHeaderLogo" src="mdandersonlogo300x54.png" alt="MDA Logo">
+			<span class="mdaServiceHeaderTitle">
+				MetaBatch Analyzer Login
+			</span>
+		</div>
+		<hr>
+		<div class="textTitles" id="FAILED_LOGIN" style="display: none"><img alt="x" src="images/Xmark.png"/>Login attempt failed<img alt="x" src="images/Xmark.png"/></div>
+		<div class="mdaRounded largeInputAndSelect">
+			<strong>MD Anderson Login</strong>
+			<form method="POST" action="j_security_check">
+				<table class="mdaCollapsedTable" style="width:100%;">
+					<tbody>
+						<tr>
+							<td style="text-align: left"><span class="textTitles">User Name:</span></td>
+							<td style="text-align: left"><input type="text" name="j_username"></td>
+						</tr>
+						<tr>
+							<td style="text-align: left"><span class="textTitles">Password:</span></td>
+							<td style="text-align: left"><input type="password" name="j_password"></td>
+						</tr>
+					</tbody>
+				</table>
+				<input type="submit" class="buttons">
+			</form>
+		</div>
+		<br>
+		Click <a href='/MBA/MBA/index.html'>here</a> to cancel login.
+		<p><small>Legal notice: Unauthorized access to the network is prohibited. This system is for the use of authorized users only. 
+			Individuals using this computer system without authority, or in excess of their authority, are subject to having all of 
+			their activities on this system monitored and recorded by system personnel. In the course of monitoring individuals 
+			improperly using this system, or in the course of system maintenance, the activities of authorized users may also be 
+			monitored. Anyone using this system expressly consents to such monitoring and is advised that if such monitoring reveals 
+			possible evidence of criminal activity, system personnel may provide the evidence of such monitoring to law enforcement officials.
+			(Auto-displayed notice will close after 3 seconds or click this banner to hide.)
+				<br>
+				This website is for educational and research purposes only.</small>
+		</p>
+	</body>
+</html>

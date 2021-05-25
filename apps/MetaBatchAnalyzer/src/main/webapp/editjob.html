@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<!--
+Tooltip library https://atomiks.github.io/tippyjs/
+Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
+-->
+<html>
+	<head>
+		<title>MetaBatch Analyzer</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script type="text/javascript" src="jquery-1.11.1.min.js"></script>
+		<script type="text/javascript" src="knockout-3.2.0.js"></script>
+		<script type="text/javascript" src="knockout.mapping-2.4.1.js"></script>
+		<script type="text/javascript" src="knockout.validation.js"></script>
+		<script type="text/javascript" src="purl.js"></script>
+		<script type="text/javascript" src="mba.js"></script>
+		<script type="text/javascript" src="tippy.js"></script>
+		<script>
+			/* global ko */
+
+			// this makes sure that nothing gets called until page and required JS files are loaded
+			var appview = null;
+			$(document).ready(function()
+			{
+				// Activate knockout-validation
+				ko.validation.init(setupKnockoutValidation());
+				appview = new AppViewModel();
+				// makes appview so we can check if all values are valid by calling appview.isValid()
+				appview = ko.validatedObservable(appview);
+				ko.applyBindings(appview);
+				initializeTooltips();
+			});
+
+			// This is a simple *viewmodel* - JavaScript that defines the data and behavior of your UI
+			function AppViewModel()
+			{
+				var self = this;
+
+				// Authorization and Authentication related information
+				self.currentUserName = ko.observable("");
+				self.availableUsers = ko.observableArray([]);
+				self.availableRoles = ko.observableArray([]);
+
+				self.makeGuiVisible = ko.observable(false); //.extend({ deferred: true });
+				// serverTitle is a config stored designation of server as DVLP, STAG, or PROD, or NONE
+				self.serverTitle = ko.observable("");
+				self.propAllowLogin = ko.observable("maybe"); //should be tru				// varaibles for setting up the RBN/EBNplus options
+
+				getMBAPropertiesCommon(self);
+				
+				// Get the logged in user, if any, requires a page refresh from the login or logout options
+				getLoggedInUser(self);
+				
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				//// START PAGE SPECIFIC ENTRIES
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				
+				// runs on initial load of page, to refresh job status if returning to previously bookmarked job
+				var myJob = getParameterByName("job");
+
+				self.jobId = ko.observable(myJob);
+				self.jobState = ko.observable("");
+				self.jobMessage = ko.observable("");
+				self.jobTail = ko.observableArray([]);
+				self.jobTag = ko.observable("");
+				self.jobOwner = ko.observable("");
+				self.jobEmail = ko.observable("");
+				self.jobAuthUsers = ko.observableArray([]);
+				self.jobAuthRoles = ko.observableArray([]);
+
+				self.returnToPage = function()
+				{
+					// really determines current editing/status page and goes there
+					refreshJobStatus(self, self.jobId());
+					goToPageBasedOnState(self.jobState(), self.jobId());
+				};
+				
+				// This function is used to change job information, which is currently a tag,
+				// and owner, and an email
+				self.updateJobInfo = function()
+				{
+					$.ajax(
+					{
+						type: "GET",
+						dataType: "text",
+						async: true,
+						url: "JOBinfo",
+						cache: false,
+						data:
+						{
+							jobId: self.jobId(),
+							jobOwner: self.jobOwner(),
+							jobTag: self.jobTag(),
+							jobEmail: self.jobEmail(),
+							jobAuthUsers: self.jobAuthUsers(),
+							jobAuthRoles: self.jobAuthRoles()
+						},
+						beforeSend: function(){
+							disableInput(self);
+						},
+						success: function(theText)
+						{
+							console.log("Success: updateJobInfo");
+							// console.log(theText);
+							enableInput(self);
+							alert("Updated!");
+							goToPageBasedOnState(self.jobState(), self.jobId());
+						},
+						error: function(jqXHR, textStatus, errorThrown)
+						{
+						    console.log("Error: updateJobInfo", errorThrown, jqXHR);
+						    enableInput(self);
+						}
+					});
+				};
+				
+				console.log(self.jobId());
+				refreshJobStatus(self, self.jobId());
+				// Get the logged in user, if any, requires a page refresh from the login or logout options
+				getLoggedInUser(self);
+				
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				//// END
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+
+				// this is used to prevent "flickering" characteristic on load with knockoutJS
+				self.makeGuiVisible(true);
+			} //End Appview Model
+		</script>
+		<link href="mba.css" rel="stylesheet" type="text/css">
+		<link href="tippy.css" rel="stylesheet" type="text/css">
+	</head>
+	<body style="display: none;" data-bind="visible: $root.makeGuiVisible()">
+		<div class="mdaServiceHeader">
+			<a href="https://bioinformatics.mdanderson.org/public-software/tcga-batch-effects/" target="_blank"><img class="mdaServiceHeaderLogo" src="mdandersonlogo300x54.png" alt="MDA Logo"></a>
+			<span class="mdaServiceHeaderTitle">
+				MetaBatch Analyzer
+				<span class="mdaServiceHeaderTitle" style="margin: 0; padding: 0;" data-bind="text:$root.serverTitle()"></span>
+				<small>BEA_VERSION_TIMESTAMP</small>
+				<small style="float: right;">
+					<a href="MBatch_04-99_Statistics.html" target="_blank">Statistics</a>
+					/
+					<a href="https://github.com/MD-Anderson-Bioinformatics/MetaBatchAnalyzer/tree/master/docs" target="_blank">Help</a>
+					/
+					<a href="https://github.com/MD-Anderson-Bioinformatics/MetaBatchAnalyzer" target="_blank">GitHub</a>
+				</small>
+			</span>
+		</div>
+		<hr>
+		<span>
+			<button class="buttons homeButton" id="homeButton" data-bind="click: function(data, event) { goHome(); }" >Home</button>
+			<button class="buttons loginButton" id="loginButton" data-bind="visible: 'true'===$root.propAllowLogin()&&''===$root.currentUserName(),click: function(data, event) { goAuthUpdate(); }" >Login</button>
+			<button class="buttons logoutButton" id="logoutButton" data-bind="visible: !(''===$root.currentUserName()),click: function(data, event) { goAuthOut(); }" >Logout</button>
+			<span class="textTitles" data-bind="text:$root.currentUserName()"></span>&nbsp;
+			<small>
+				<strong>Job Id:</strong><span data-bind="text:$root.jobId()"></span>&nbsp;
+				<strong>Job State:</strong><span data-bind="text:$root.jobState()"></span>&nbsp;
+				<strong>Job Message:</strong><span data-bind="text:$root.jobMessage()"></span>&nbsp;
+			</small>
+		</span>
+		<hr>
+		<div class="roundedBox" data-bind="visible: $root.jobId() !=='' ">
+		    <strong>Update Job Info</strong>
+		    <div class="marginTop10px marginLeft10px">
+			    <span class="tooltip">
+				<img id="tooltipImage_JobInfo"  style="float: right;" title="Update Job Info" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
+				<span id="tooltipContent_JobInfo" class="tooltiptext">Update Job Info:<br><br>
+					These fields can be used to add a tag and/or email to a job. The tag will be saved, and displayed
+					at the home screen to aid in job identification. If an email is added, the user will receive an email
+					notifying them when their job state changes.</span>
+			    </span>
+			    Job Id: <span data-bind="text: $root.jobId"></span>
+			    Tag: <input type="text" data-bind="value: $root.jobTag"/>
+			    Email: <input type="email" data-bind="value: $root.jobEmail"/>
+				<div data-bind="visible: !(''===$root.currentUserName())">
+					<table>
+						<thead>
+							<tr>
+								<th>Users with Access</th>
+								<th>Roles with Access</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><select  size="5" multiple="true" data-bind="options: $root.availableUsers, selectedOptions: $root.jobAuthUsers"></select></td>
+								<td><select  size="5" multiple="true" data-bind="options: $root.availableRoles, selectedOptions: $root.jobAuthRoles"></select></td>
+							</tr>
+						</tbody>
+					</table>
+					Owners always have access.
+			    </div>
+				<div class="right-buttons">
+					<button class="buttons" data-bind="click: function(data, event){ $root.updateJobInfo(); }">Update</button>
+					<button class="buttons" data-bind="click: function(data, event){ $root.returnToPage(); }">Cancel</button>
+				</div>
+		    </div>
+		</div>
+	</body>
+</html>
+

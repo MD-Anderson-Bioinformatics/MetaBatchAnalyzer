@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<!--
+Tooltip library https://atomiks.github.io/tippyjs/
+Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
+-->
+<html>
+	<head>
+		<title>MetaBatch Analyzer</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script type="text/javascript" src="jquery-1.11.1.min.js"></script>
+		<script type="text/javascript" src="knockout-3.2.0.js"></script>
+		<script type="text/javascript" src="knockout.mapping-2.4.1.js"></script>
+		<script type="text/javascript" src="knockout.validation.js"></script>
+		<script type="text/javascript" src="purl.js"></script>
+		<script type="text/javascript" src="mba.js"></script>
+		<script type="text/javascript" src="tippy.js"></script>
+		<script>
+			/* global ko */
+			
+			// this makes sure that nothing gets called until page and required JS files are loaded
+			var appview = null;
+			$(document).ready(function()
+			{
+				// Activates knockout.js
+				appview = new AppViewModel();
+				ko.applyBindings(appview);
+				initializeTooltips();
+			});
+
+			// This is a simple *viewmodel* - JavaScript that defines the data and behavior of your UI
+			function AppViewModel()
+			{
+				var self = this;
+
+				// Authorization and Authentication related information
+				self.currentUserName = ko.observable("");
+				self.availableUsers = ko.observableArray([]);
+				self.availableRoles = ko.observableArray([]);
+
+				self.makeGuiVisible = ko.observable(false); //.extend({ deferred: true });
+				// serverTitle is a config stored designation of server as DVLP, STAG, or PROD, or NONE
+				self.serverTitle = ko.observable("");
+				self.propAllowLogin = ko.observable("maybe"); //should be tru				// varaibles for setting up the RBN/EBNplus options
+				
+				getMBAPropertiesCommon(self);
+				
+				// Get the logged in user, if any, requires a page refresh from the login or logout options
+				getLoggedInUser(self);
+
+				////////////////////////////////////////////////////////////////
+				//// Get list of current jobs
+				////////////////////////////////////////////////////////////////
+
+				// list of new jobs
+				// we were thinking it might be good to separate the job.properties file into multiple file
+				// one for each user. And to add a "view all jobs" checkbox. This prevents a single job.properties
+				// file from becoming a performance bottleneck when scaling.
+				self.listOfJobStatuses = ko.observableArray([]);
+				$.ajax(
+				{
+					type: "GET",
+					dataType:'json',
+					async:false,
+					url: "JOBlist",
+					cache: false,
+					success: function(theJson)
+					{
+						//console.log("JOBlist : jobs=" + theJson);
+						self.listOfJobStatuses(theJson);
+					},
+					error: function(jqXHR, textStatus, errorThrown)
+					{
+						console.log("JOBlist :" + textStatus + " and " + errorThrown);
+						alert("JOBlist :" + textStatus + " and " + errorThrown);
+					}
+				});
+				
+				////////////////////////////////////////////////////////////////
+				//// Step Delete: delete job id
+				////////////////////////////////////////////////////////////////
+				
+				self.deleteJob = function(theJobId)
+				{
+					if (confirm("Are you sure you want to delete Job ID: " + theJobId + "?"))
+					{
+						$.ajax(
+						{
+							type: "GET",
+							dataType:'text',
+							async:true,
+							url: "JOBdelete",
+							cache: false,
+							data:
+							{
+								jobId: theJobId
+							},
+							beforeSend : function()
+							{
+								disableInput(self);
+							},
+							complete : function()
+							{
+								// skip since page reload does this enableInput(self);
+							},
+							success: function(theText)
+							{
+								// refresh the page to refresh list of jobs
+								window.location.assign(window.location.href.replace(window.location.search, ''));
+							},
+							error: function(jqXHR, textStatus, errorThrown)
+							{
+								console.log("JOBdelete :" + textStatus + " and " + errorThrown);
+								alert("JOBdelete :" + textStatus + " and " + errorThrown);
+								self.enableInput();
+							}
+						});
+				    };
+				};
+				
+				
+				// create a new job, which returns the job id. original versions of the code did not 
+				// return a job id until data was entered. Some legacy aspects of the code may
+				// reflect the old approach, but we're trying to remove them.
+				self.createNewJob = function()
+				{
+					$.ajax(
+					{
+						type: "GET",
+						dataType:'text',
+						async:false,
+						url: "JOBnew",
+						cache: false,
+						success: function(theText)
+						{
+							//console.log("JOBnew : job=" + theText);
+							// we get the job id back from the JOBnew servlet as text
+							// set this into the URL which triggers a refresh of the page
+							// and the query for the job status
+							goToPage("newjob.html?job="+theText);
+						},
+						error: function(jqXHR, textStatus, errorThrown)
+						{
+							console.log("JOBnew :" + textStatus + " and " + errorThrown);
+							alert("JOBnew :" + textStatus + " and " + errorThrown);
+						}
+					});
+				};
+				
+				// this is used to prevent "flickering" characteristic on load with knockoutJS
+				self.makeGuiVisible(true);
+			} //End Appview Model
+		</script>
+		<link href="mba.css" rel="stylesheet" type="text/css">
+		<link href="tippy.css" rel="stylesheet" type="text/css">
+		
+	</head>
+	<body style="display: none;" data-bind="visible: $root.makeGuiVisible()">
+		<div class="mdaServiceHeader">
+			<a href="https://bioinformatics.mdanderson.org/public-software/tcga-batch-effects/" target="_blank"><img class="mdaServiceHeaderLogo" src="mdandersonlogo300x54.png" alt="MDA Logo"></a>
+			<span class="mdaServiceHeaderTitle">
+				MetaBatch Analyzer
+				<span class="mdaServiceHeaderTitle" style="margin: 0; padding: 0;" data-bind="text:$root.serverTitle()"></span>
+				<small>BEA_VERSION_TIMESTAMP</small>
+				<small style="float: right;">
+					<a href="MBatch_04-99_Statistics.html" target="_blank">Statistics</a>
+					/
+					<a href="https://github.com/MD-Anderson-Bioinformatics/MetaBatchAnalyzer/tree/master/docs" target="_blank">Help</a>
+					/
+					<a href="https://github.com/MD-Anderson-Bioinformatics/MetaBatchAnalyzer" target="_blank">GitHub</a>
+				</small>
+			</span>
+		</div>
+		<hr>
+
+		<span>
+			<button class="buttons homeButton" id="homeButton" data-bind="click: function(data, event) { goHome(); }" >Home</button>
+			<button class="buttons loginButton" id="loginButton" data-bind="visible: 'true'===$root.propAllowLogin()&&''===$root.currentUserName(),click: function(data, event) { goAuthUpdate(); }" >Login</button>
+			<button class="buttons logoutButton" id="logoutButton" data-bind="visible: !(''===$root.currentUserName()),click: function(data, event) { goAuthOut(); }" >Logout</button>
+			<button class="buttons" id="startNewJobButton" data-bind="click: function(data, event) { $root.createNewJob(); }">Start New Job</button>
+			<span class="textTitles" data-bind="text:$root.currentUserName()"></span>
+		</span>
+		<hr>
+		<!-- =============================================================== -->
+		<!-- JOB MANAGEMENT SECTION status and deletion                      -->
+		<!-- =============================================================== -->
+		<!-- only show below block if jobId is empty meaning we're managing  -->
+		<div class="roundedBox">
+			<div class="textTitles">Job History:</div><br>
+			<div data-bind="visible: $root.listOfJobStatuses().length===0">There are currently no jobs. Use the "Start New Job" button to create a job.</div>
+			<div class="mdaRounded largeTableBoxes" data-bind="visible: $root.listOfJobStatuses().length>0">
+				<table class="mdaCollapsedTable" style="width:100%;">
+					<thead>
+						<tr class="">
+							<th class="textTitles">Job Id</th>
+							<th class="textTitles">Tag</th>
+							<th class="textTitles">Date Created</th>
+							<th class="textTitles">Message</th>
+							<th class="textTitles">Go to Job</th>
+							<th class="textTitles">Delete Job</th>
+						</tr>
+					</thead>
+					<tbody data-bind="foreach: { data: $root.listOfJobStatuses.slice(0).reverse(), as: 'jobWithStatus' }">
+						<tr>
+							<td style="text-align: left"><span data-bind="text: jobWithStatus.jobid"></span></td>
+							<td style="text-align: left"><span data-bind="text: jobWithStatus.tag"></span></td>
+							<td style="text-align: left"><span data-bind="text: millisToTimestamp(jobWithStatus.jobid)"></span></td>
+							<td style="text-align: left"><span data-bind="text: jobWithStatus.message"></span></td>
+							<td style="text-align: center">
+								<button class="buttons" data-bind="click: function(data, event) { goToPage('newjob.html?job='+jobWithStatus.jobid); }" >Select Job</button>
+							</td>
+							<td style="text-align: center">
+								<button class="buttons" data-bind="click: function(data, event) { $root.deleteJob(jobWithStatus.jobid); }" >Delete</button>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</div>
+		<div style="font-size: 10px;">
+			Individuals using this computer system without authority, or in excess of their authority, are subject to having all of 
+			their activities on this system monitored and recorded by system personnel. In the course of monitoring individuals 
+			improperly using this system, or in the course of system maintenance, the activities of authorized users may also be 
+			monitored. Anyone using this system expressly consents to such monitoring and is advised that if such monitoring reveals 
+			possible evidence of criminal activity, system personnel may provide the evidence of such monitoring to law enforcement officials.<br>
+			<strong>Notice</strong> This website is for educational and research purposes only.<br>
+			<strong>Funding</strong> This work was supported in part by Weinstein, Broom, Akbani. Computational Tools for Analysis and Visualization of Quality Control Issues in Metabolomic Data, U01CA235510, NIH/NCI<br>
+		</div>
+	</body>
+</html>

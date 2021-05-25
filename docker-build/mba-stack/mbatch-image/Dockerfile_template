@@ -1,0 +1,36 @@
+FROM mdabcb/mbatchsa_image:BEA_VERSION_TIMESTAMP
+
+# reminder, use {} around environmental variables, otherwise docker uses it as a literal
+
+LABEL edu.mda.bcb.name="MetaBatch Analyzer: MBatch" \
+      edu.mda.bcb.sub="mba" \
+      edu.mda.bcb.bea.version="BEA_VERSION_TIMESTAMP" \
+      edu.mda.bcb.bea.log="<LOG_DIR>" \
+      edu.mda.bcb.bea.start="<START_SCRIPT>" \
+      edu.mda.bcb.bea.stop="<STOP_SCRIPT>" \
+      edu.mda.bcb.bea.upcheck="<UPCHECK_SCRIPT>"
+
+# create and setup mbauser use to external directory owner
+# also, set permissions and ownerships on internal docker directories
+RUN mkdir /home/mbauser && \
+    useradd -l -s /bin/bash -d /home/mbauser -u <USERID> mbauser && \
+    chown -R mbauser:mbauser /home/mbauser
+
+# make subdirectory in user home for running
+# COPY is always done as root!!!!
+RUN mkdir /home/mbauser/mbatch && \
+    chown -R mbauser:mbauser /home/mbauser/mbatch && \
+    chmod -R u+rwx /home/mbauser/mbatch
+COPY installations /home/mbauser/mbatch
+
+RUN chown -R mbauser:mbauser /home/mbauser && \
+    chmod -R u+rwx /home/mbauser && \
+    ls -l /home/mbauser/mbatch
+
+# switch from root to mbauser user
+USER mbauser
+
+# set working directory for future commands
+WORKDIR /home/mbauser/mbatch
+CMD ["/bin/bash", "/home/mbauser/mbatch/runRproc.bash", "http://mbaService:8080/"]
+

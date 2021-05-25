@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<!--
+Tooltip library https://atomiks.github.io/tippyjs/
+Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
+-->
+<html>
+	<head>
+		<title>MetaBatch Analyzer</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script type="text/javascript" src="jquery-1.11.1.min.js"></script>
+		<script type="text/javascript" src="knockout-3.2.0.js"></script>
+		<script type="text/javascript" src="knockout.mapping-2.4.1.js"></script>
+		<script type="text/javascript" src="knockout.validation.js"></script>
+		<script type="text/javascript" src="purl.js"></script>
+		<script type="text/javascript" src="mba.js"></script>
+		<script type="text/javascript" src="tippy.js"></script>
+		<script>
+			/* global ko */
+
+			// this makes sure that nothing gets called until page and required JS files are loaded
+			var appview = null;
+			$(document).ready(function()
+			{
+				// Activate knockout-validation
+				ko.validation.init(setupKnockoutValidation());
+				appview = new AppViewModel();
+				// makes appview so we can check if all values are valid by calling appview.isValid()
+				appview = ko.validatedObservable(appview);
+				ko.applyBindings(appview);
+				initializeTooltips();
+			});
+
+			// This is a simple *viewmodel* - JavaScript that defines the data and behavior of your UI
+			function AppViewModel()
+			{
+				var self = this;
+
+				// Authorization and Authentication related information
+				self.currentUserName = ko.observable("");
+				self.availableUsers = ko.observableArray([]);
+				self.availableRoles = ko.observableArray([]);
+
+				self.makeGuiVisible = ko.observable(false); //.extend({ deferred: true });
+				// serverTitle is a config stored designation of server as DVLP, STAG, or PROD, or NONE
+				self.serverTitle = ko.observable("");
+				self.propAllowLogin = ko.observable("maybe"); //should be tru				// varaibles for setting up the RBN/EBNplus options
+
+				getMBAPropertiesCommon(self);
+				
+				// Get the logged in user, if any, requires a page refresh from the login or logout options
+				getLoggedInUser(self);
+				
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				//// START PAGE SPECIFIC ENTRIES
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				
+				// *************************************************************
+				// *************************************************************
+				// ** Step Last: Check for job id, read job status and data
+				// *************************************************************
+				// *************************************************************
+				
+				// runs on initial load of page, to refresh job status if returning to previously bookmarked job
+				var myJob = getParameterByName("job");
+
+				self.jobId = ko.observable(myJob);
+				self.jobState = ko.observable("");
+				self.jobMessage = ko.observable("");
+				self.jobTail = ko.observableArray([]);
+				self.jobTag = ko.observable("");
+				self.jobOwner = ko.observable("");
+				self.jobEmail = ko.observable("");
+				self.jobAuthUsers = ko.observableArray([]);
+				self.jobAuthRoles = ko.observableArray([]);
+				
+				refreshJobStatus(self, self.jobId());
+
+				goToPageBasedOnState(self.jobState(), self.jobId());
+				
+				// PAGE SPECIFIC, but needs to be after jobId is created 
+				// 
+				// This function generates the unique url to directly link-out to the respective
+				// job in the MetaBatch Omic Browser
+				self.doWebsiteUrl = ko.computed(function()
+				{
+					var myUrl = "";
+					// NOTE IMPORTANT : jobState comparison is in here to force re-compute 
+					// when the job state goes to success. Otherwise it never updates.
+					if ((undefined!==self.jobId)&&("MBATCHRUN_END_SUCCESS"===self.jobState()))
+					{
+						console.log("look up " + self.jobId());
+						$.ajax(
+						{
+							type: "GET",
+							dataType:'text',
+							async:false,
+							url: "JOBwsurl",
+							cache: false,
+							beforeSend: function ()
+							{
+								disableInput(self);
+							},
+							complete: function ()
+							{
+								enableInput(self);
+							},
+							data:
+							{
+								jobId: self.jobId()
+							},
+							success: function(theText)
+							{
+								console.log("theText=" + theText);
+								myUrl = theText;
+							},
+							error: function(jqXHR, textStatus, errorThrown)
+							{
+								self.enableInput();
+								console.log("JOBwsurl :" + textStatus + " and " + errorThrown);
+								alert("JOBwsurl :" + textStatus + " and " + errorThrown);
+							}
+						});
+					}
+					else
+					{
+						console.log("is self.jobId undefined " + self.jobId() + "?");
+						console.log("Or did status not change " + self.jobState());
+						myUrl = "";
+					}
+					return myUrl;
+				});
+				
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				//// END
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+
+				// this is used to prevent "flickering" characteristic on load with knockoutJS
+				self.makeGuiVisible(true);
+			} //End Appview Model
+		</script>
+		<link href="mba.css" rel="stylesheet" type="text/css">
+		<link href="tippy.css" rel="stylesheet" type="text/css">
+	</head>
+	<body style="display: none;" data-bind="visible: $root.makeGuiVisible()">
+		<div class="mdaServiceHeader">
+			<a href="https://bioinformatics.mdanderson.org/public-software/tcga-batch-effects/" target="_blank"><img class="mdaServiceHeaderLogo" src="mdandersonlogo300x54.png" alt="MDA Logo"></a>
+			<span class="mdaServiceHeaderTitle">
+				MetaBatch Analyzer
+				<span class="mdaServiceHeaderTitle" style="margin: 0; padding: 0;" data-bind="text:$root.serverTitle()"></span>
+				<small>BEA_VERSION_TIMESTAMP</small>
+				<small style="float: right;">
+					<a href="MBatch_04-99_Statistics.html" target="_blank">Statistics</a>
+					/
+					<a href="https://github.com/MD-Anderson-Bioinformatics/MetaBatchAnalyzer/tree/master/docs" target="_blank">Help</a>
+					/
+					<a href="https://github.com/MD-Anderson-Bioinformatics/MetaBatchAnalyzer" target="_blank">GitHub</a>
+				</small>
+			</span>
+		</div>
+		<hr>
+		<span>
+			<button class="buttons homeButton" id="homeButton" data-bind="click: function(data, event) { goHome(); }" >Home</button>
+			<button class="buttons loginButton" id="loginButton" data-bind="visible: 'true'===$root.propAllowLogin()&&''===$root.currentUserName(),click: function(data, event) { goAuthUpdate(); }" >Login</button>
+			<button class="buttons logoutButton" id="logoutButton" data-bind="visible: !(''===$root.currentUserName()),click: function(data, event) { goAuthOut(); }" >Logout</button>
+			<span class="textTitles" data-bind="text:$root.currentUserName()"></span>&nbsp;
+			<small>
+				<strong>Job Id:</strong><span data-bind="text:$root.jobId()"></span>&nbsp;
+				<strong>Job State:</strong><span data-bind="text:$root.jobState()"></span>&nbsp;
+				<strong>Job Message:</strong><span data-bind="text:$root.jobMessage()"></span>&nbsp;
+			</small>
+			<button class="buttons editButton" id="editButton" data-bind="click: function(data, event) { goToEditPage($root.jobId()); }" >Edit Details</button>
+		</span>
+		<hr>
+		
+		<div class="roundedBox">
+			<span class="tooltip" style="float: right;">
+				<img id="tooltipImage_MBatchResults" title="MBatch Results" data-theme="myTooltipTheme" src="images/Tooltip_icon.png"  class="guiIconDimensions" alt="More Info">
+				<span id="tooltipContent_MBatchResults" class="tooltiptext">MBatch Results:<br><br>
+				This page contains the MBatch results. The download package contains the data and results from the run.
+				In case of an error, the log file is also in the download package.</span>
+			</span>
+			<!-- one for pending -->
+			<div data-bind="visible: 'MBATCHRUN_START_WAIT'===$root.jobState()">
+				<span class="spinner"></span><strong>The MBatch run is queued and waiting for assignment to a processing node.</strong><br>
+			</div>
+			<!-- one for accepted for processing -->
+			<div data-bind="visible: 'MBATCHRUN_ACCEPTED_WAIT'===$root.jobState()">
+				<span class="spinner"></span><strong>The MBatch run has been accepted by a processing node.</strong><br>
+			</div>
+			<!-- one for accepted for processing -->
+			<div data-bind="visible: 'MBATCHRUN_RUNNING_WAIT'===$root.jobState()">
+				<span class="spinner"></span><strong>The MBatch run is underway on a processing node.</strong><br>
+			</div>
+			<!-- one for success -->
+			<div data-bind="visible: 'MBATCHRUN_END_SUCCESS'===$root.jobState()">
+				<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed" />
+				<strong>MBatch succeeded.</strong><br>
+				<div>
+					<button class="buttons" id="downloadMbatchSuccess" data-bind="click: function(data, event) { window.location.href= 'JOBdownload?jobId='+ $root.jobId(); }" >Download MBatch Results</button>
+					view on <a target="_blank" data-bind="attr: { href: $root.doWebsiteUrl() }">the visualization website</a>.
+				</div>
+			</div>
+			<!-- one for failure -->
+			<div data-bind="visible: 'MBATCHRUN_END_FAILURE'===$root.jobState()">
+				<img src="images/Xmark.png" class="guiIconDimensions" alt="Completed" />
+				<strong>MBatch Failed.</strong>
+				<div>
+					<button class="buttons" id="downloadMbatchFailure" data-bind="click: function(data, event) { window.location.href= 'JOBdownload?jobId='+ $root.jobId(); }" >Download MBatch Results</button>
+				</div>
+			</div>
+		</div>
+		<!-- **** START: Tail *********************************** -->
+		<div class="roundedBox" data-bind="visible: ($root.jobTail().length>1)">
+			Log File Tail (last 100 lines):<br>
+			<select class="tail_scroll" id="tail_scroll" data-bind="options: $root.jobTail, value: $root.jobTail()[$root.jobTail().length-1]" size='10' multiple='false'></select>    
+		</div>
+		<!-- **** END: Tail ************************************* -->
+	</body>
+</html>
+

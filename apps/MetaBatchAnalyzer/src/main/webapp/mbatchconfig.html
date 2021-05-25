@@ -1,0 +1,1569 @@
+<!DOCTYPE html>
+<!--
+Tooltip library https://atomiks.github.io/tippyjs/
+Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
+-->
+<html>
+	<head>
+		<title>MetaBatch Analyzer</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<script type="text/javascript" src="jquery-1.11.1.min.js"></script>
+		<script type="text/javascript" src="knockout-3.2.0.js"></script>
+		<script type="text/javascript" src="knockout.mapping-2.4.1.js"></script>
+		<script type="text/javascript" src="knockout.validation.js"></script>
+		<script type="text/javascript" src="purl.js"></script>
+		<script type="text/javascript" src="mba.js"></script>
+		<script type="text/javascript" src="tippy.js"></script>
+		<script type="text/javascript" src="mba_validation.js"></script>
+		<script>
+			/* global ko */
+
+			// this makes sure that nothing gets called until page and required JS files are loaded
+			var appview = null;
+			$(document).ready(function ()
+			{
+				// Activate knockout-validation
+				ko.validation.init(setupKnockoutValidation());
+				appview = new AppViewModel();
+				// makes appview so we can check if all values are valid by calling appview.isValid()
+				appview = ko.validatedObservable(appview);
+				ko.applyBindings(appview);
+				initializeTooltips();
+			});
+
+			// This is a simple *viewmodel* - JavaScript that defines the data and behavior of your UI
+			function AppViewModel()
+			{
+				var self = this;
+
+				// Authorization and Authentication related information
+				self.currentUserName = ko.observable("");
+				self.availableUsers = ko.observableArray([]);
+				self.availableRoles = ko.observableArray([]);
+
+				self.makeGuiVisible = ko.observable(false); //.extend({ deferred: true });
+				// serverTitle is a config stored designation of server as DVLP, STAG, or PROD, or NONE
+				self.serverTitle = ko.observable("");
+				self.propAllowLogin = ko.observable("maybe"); //should be tru				// varaibles for setting up the RBN/EBNplus options
+
+				getMBAPropertiesCommon(self);
+
+				// Get the logged in user, if any, requires a page refresh from the login or logout options
+				getLoggedInUser(self);
+
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				//// START PAGE SPECIFIC ENTRIES
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+
+				////////////////////////////////////////////////////////////////
+				//// defaults from server
+				////////////////////////////////////////////////////////////////
+
+				// should be true or false, use "maybe" to indicate unitialized status
+				self.propMutBatchMem = ko.observable(null);
+				self.propMutBatchThreads = ko.observable(null);
+				self.propMutBatchPvalueCutoff = ko.observable(null);
+				self.propMutBatchZscoreCutoff = ko.observable(null);
+				//
+				self.propMaxDscThreads = ko.observable();
+				self.propMinBoxplotGeneCount = ko.observable(null);
+				self.propMaxDscGeneCount = ko.observable(null);
+				self.propFilterMinAllowed = ko.observable(null);
+				self.propFilterMaxAllowed = ko.observable(null);
+				self.propFilterLogTransform = ko.observable(null);
+				self.propMaxBoxplotGeneCount = ko.observable(null);
+				self.propMaxDscPermutations = ko.observable(null);
+				self.propRBN_InvariantId = ko.observable(null);
+				self.propRBN_VariantId = ko.observable(null);
+				self.propRBN_Matched = ko.observable(null);
+				self.propEBNPlus_GroupId1 = ko.observable(null);
+				self.propEBNPlus_GroupId2 = ko.observable(null);
+				self.propEBNPlus_Seed = ko.observable(null);
+				self.propEBNPlus_MinSamples = ko.observable(null);
+				self.propNgchmRowType = ko.observable(null);
+				self.propNgchmColumnType = ko.observable(null);
+
+				// Do a sync Ajax call to MBA properties to get defaults.
+				// The inline conditionals below check if theJson.theProperty got back a non-null value.
+				// If so, than the property observables are updated accordingly.
+				$.ajax(
+				{
+					type: "GET",
+					dataType: 'json',
+					async: false,
+					url: "MBAproperties",
+					cache: false,
+					success: function (theJson)
+					{
+						console.log("MBAproperties success");
+						self.propMutBatchMem(
+								(null === theJson.mutBatchMem) ? self.propMutBatchMem() : theJson.mutBatchMem
+								);
+						self.propMutBatchThreads(
+								(null === theJson.mutBatchThreads) ? self.propMutBatchThreads() : theJson.mutBatchThreads
+								);
+						self.propMutBatchPvalueCutoff(
+								(null === theJson.mutBatchPvalueCutoff) ? self.propMutBatchPvalueCutoff() : theJson.mutBatchPvalueCutoff
+								);
+						self.propMutBatchZscoreCutoff(
+								(null === theJson.mutBatchZscoreCutoff) ? self.propMutBatchZscoreCutoff() : theJson.mutBatchZscoreCutoff
+								);
+						self.propMaxDscThreads(
+								(null === theJson.maxDscThreads) ? self.propMaxDscThreads() : theJson.maxDscThreads
+								);
+						self.propMinBoxplotGeneCount(
+								(null === theJson.minBoxplotGeneCount) ? self.propMinBoxplotGeneCount() : theJson.minBoxplotGeneCount
+								);
+						self.propMaxDscGeneCount(
+								(null === theJson.maxDscGeneCount) ? self.propMaxDscGeneCount() : theJson.maxDscGeneCount
+								);
+						self.propFilterMinAllowed(
+								(null === theJson.filterMinAllowed) ? self.propFilterMinAllowed() : theJson.filterMinAllowed
+								);
+						self.propFilterMaxAllowed(
+								(null === theJson.filterMaxAllowed) ? self.propFilterMaxAllowed() : theJson.filterMaxAllowed
+								);
+						console.log("MBAproperties::success theJson.filterLogTransformFlag = " + theJson.filterLogTransformFlag);
+						if (("TRUE" === theJson.filterLogTransformFlag) || ("true" === theJson.filterLogTransformFlag))
+						{
+							self.propFilterLogTransform(true);
+						}
+						else
+						{
+							self.propFilterLogTransform(false);
+						}
+						self.propMaxBoxplotGeneCount(
+								(null === theJson.maxBoxplotGeneCount) ? self.propMaxBoxplotGeneCount() : theJson.maxBoxplotGeneCount
+								);
+						self.propMaxDscPermutations(
+								(null === theJson.maxDscPermutations) ? self.propMaxDscPermutations() : theJson.maxDscPermutations
+								);
+						self.propRBN_InvariantId(
+								(null === theJson.RBN_InvariantId) ? self.propRBN_InvariantId() : theJson.RBN_InvariantId
+								);
+						self.propRBN_VariantId(
+								(null === theJson.RBN_VariantId) ? self.propRBN_VariantId() : theJson.RBN_VariantId
+								);
+						if (("TRUE" === theJson.RBN_Matched) || ("true" === theJson.RBN_Matched))
+						{
+							self.propRBN_Matched(true);
+						}
+						else
+						{
+							self.propRBN_Matched(false);
+						}
+						self.propEBNPlus_GroupId1(
+								(null === theJson.EBNPlus_GroupId1) ? self.propEBNPlus_GroupId1() : theJson.EBNPlus_GroupId1
+								);
+						self.propEBNPlus_GroupId2(
+								(null === theJson.EBNPlus_GroupId2) ? self.propEBNPlus_GroupId2() : theJson.EBNPlus_GroupId2
+								);
+						self.propEBNPlus_Seed(
+								(null === theJson.EBNPlus_Seed) ? self.propEBNPlus_Seed() : theJson.EBNPlus_Seed
+								);
+						self.propEBNPlus_MinSamples(
+								(null === theJson.EBNPlus_MinSamples) ? self.propEBNPlus_MinSamples() : theJson.EBNPlus_MinSamples
+								);
+						self.propNgchmRowType(
+								(null === theJson.NgchmRowType) ? self.propNgchmRowType() : theJson.NgchmRowType
+								);
+						self.propNgchmColumnType(
+								(null === theJson.NgchmColumnType) ? self.propNgchmColumnType() : theJson.NgchmColumnType
+								);
+					},
+					error: function (jqXHR, textStatus, errorThrown)
+					{
+						console.log("MBAproperties: " + textStatus + " and " + errorThrown);
+						alert("MBAproperties: " + textStatus + " and " + errorThrown);
+					}
+				});
+
+				// *************************************************************
+				// *************************************************************
+				// ** Second: handle config file and config
+				// *************************************************************
+				// *************************************************************
+
+				////////////////////////////////////////////////////////////////
+				//// Step 2a: Select Batches and CDP option
+				////////////////////////////////////////////////////////////////
+
+				//for(i=0; i<self.primaryBatchData().length; i++)
+				//{
+				//	if ("Sample"===self.primaryBatchData()[i].mBatchType)
+				//	{
+				//		//console.log("Set sample");
+				//		self.sampleidBatchType(self.primaryBatchData()[i].mBatchType);
+				//	}
+				//}
+
+				// batch type that contains sample ids (we don't always know what that will be called for user data)
+				self.sampleidBatchType = ko.observable('Sample');
+
+				// observable array of batch types that have been selected for batch effects analysis
+				// since you can't / don't want to do sample ids as batches, this is cleared when the sample id batch type is changed
+				self.batchTypesForMBatch = ko.observableArray([]).extend({minArrayLength: {params: {minLength: 1}, message: 'Must specify at least one Batch Type.'}});
+
+				self.mbatchCDPFlag = ko.observable(true);
+
+				self.sampleidBatchType.subscribe(function (theNewValue)
+				{
+					console.log("self.sampleidBatchType.subscribe");
+					// since you can't / don't want to do sample ids as batches, this is cleared when the sample id batch type is changed
+					self.batchTypesForMBatch.removeAll();
+				});
+
+
+				self.resetDefaultStep2 = function ()
+				{
+					self.sampleidBatchType('Sample');
+					self.batchTypesForMBatch([]);
+					self.mbatchCDPFlag(true);
+				};
+
+				// *************************************************************
+				// ** load batch files
+				// *************************************************************
+
+				// load primary batch file
+
+				self.primaryBatchData = ko.observable(null);
+				self.primaryBatchTypes = ko.observableArray([]);
+
+				$.ajax(
+				{
+					type: "GET",
+					dataType: 'json',
+					async: false,
+					url: "Batchdata",
+					cache: false,
+					data:
+					{
+						// submit with job id from which to retrieve batch info
+						jobId: getParameterByName("job"),
+						isAlternate: "NO"
+					},
+					beforeSend: function ()
+					{
+						disableInput(self);
+					},
+					complete: function ()
+					{
+						enableInput(self);
+					},
+					success: function (data, textStatus, jqXHR)
+					{
+						self.primaryBatchData(data);
+						self.primaryBatchTypes.removeAll();
+						for (i = 0; i < self.primaryBatchData().length; i++)
+						{
+							self.primaryBatchTypes.push(self.primaryBatchData()[i].mBatchType);
+							//console.log("self.primaryBatchData()[i].mBatchType="+self.primaryBatchData()[i].mBatchType);
+							if ("Sample" === self.primaryBatchData()[i].mBatchType)
+							{
+								//console.log("Set self.sampleidBatchType(self.primaryBatchData()[i].mBatchType)="+self.primaryBatchData()[i].mBatchType);
+								self.sampleidBatchType(self.primaryBatchData()[i].mBatchType);
+							}
+						}
+					},
+					error: function (jqXHR, textStatus, errorThrown)
+					{
+						console.log("Batchdata: " + textStatus + " and " + errorThrown);
+						alert("Batchdata: " + textStatus + " and " + errorThrown);
+					}
+				});
+
+				// load secondary batch file (if present)
+
+				self.secondaryBatchData = ko.observable(null);
+				self.secondaryBatchTypes = ko.observableArray([]);
+
+				$.ajax(
+				{
+					type: "GET",
+					dataType: 'json',
+					async: false,
+					url: "Batchdata",
+					cache: false,
+					data:
+					{
+						// submit with job id from which to retrieve batch info
+						jobId: getParameterByName("job"),
+						isAlternate: "YES"
+					},
+					beforeSend: function ()
+					{
+						disableInput(self);
+					},
+					complete: function ()
+					{
+						enableInput(self);
+					},
+					success: function (data, textStatus, jqXHR)
+					{
+						self.secondaryBatchData(data);
+						self.secondaryBatchTypes.removeAll();
+						for (i = 0; i < self.secondaryBatchData().length; i++)
+						{
+							self.secondaryBatchTypes.push(self.secondaryBatchData()[i].mBatchType);
+						}
+					},
+					error: function (jqXHR, textStatus, errorThrown)
+					{
+						console.log("Batchdata (alt): " + textStatus + " and " + errorThrown);
+						alert("Batchdata (alt): " + textStatus + " and " + errorThrown);
+					}
+				});
+
+				////////////////////////////////////////////////////////////////
+				//// Step 2b:
+				////////////////////////////////////////////////////////////////
+
+				self.mbatchMethodSelectValue = ko.observable("MBatch Continuous");
+				self.mbatchMethodSelectOptions = ko.observableArray(["MBatch Continuous", "MBatch Discrete", "MutBatch"]);
+
+				self.isReadyAndMBatchContinuous = ko.computed(function ()
+				{
+					return ( ("MBatch Continuous"===self.mbatchMethodSelectValue()) && (self.batchTypesForMBatch().length>0) );
+				});
+
+				self.isReadyAndMBatchDiscrete = ko.computed(function ()
+				{
+					return ( ("MBatch Discrete"===self.mbatchMethodSelectValue()) && (self.batchTypesForMBatch().length>0) );
+				});
+				
+				self.isReadyAndMutBatch = ko.computed(function ()
+				{
+					return ( ("MutBatch"===self.mbatchMethodSelectValue()) && (self.batchTypesForMBatch().length>0) );
+				});
+
+				////////////////////////////////////////////////////////////////
+				//// Step 3: MBatch Discrete and MutBatch
+				////////////////////////////////////////////////////////////////
+				
+				self.mutBatchMem = ko.observable(self.propMutBatchMem());
+				self.mutBatchThreads = ko.observable(self.propMutBatchThreads());
+				self.mutBatchPvalueCutoff = ko.observable(self.propMutBatchPvalueCutoff());
+				self.mutBatchZscoreCutoff = ko.observable(self.propMutBatchZscoreCutoff());
+
+				////////////////////////////////////////////////////////////////
+				//// Step 3: Select a Filter
+				////////////////////////////////////////////////////////////////
+
+				// populate from config
+				self.filterMaxAllowed = ko.observable(self.propFilterMaxAllowed());
+				self.filterLogTransformFlag = ko.observable(self.propFilterLogTransform());
+				self.filterLogTransformFlag2 = ko.observable(self.propFilterLogTransform());
+				console.log("populate from config self.filterLogTransformFlag() = " + self.filterLogTransformFlag());
+				// populate from config
+				self.filterMinAllowed = ko.observable(self.propFilterMinAllowed());
+				self.filterMaxValue = ko.observable(self.filterMaxAllowed());
+				// batch type on which to filter
+				// use undefined so we can use an array of values instead of building HTML options
+				self.filteringBatchType = ko.observable(undefined);
+				self.filteringBatchType.subscribe(function (theNewValue)
+				{
+					console.log("self.filteringBatchType.subscribe");
+					// if batch type on which to filter changes, then list of filtered batches should reset
+					self.filteringBatches.removeAll();
+				});
+				self.filteringBatches = ko.observableArray([]);
+				self.getFilteringBatches = ko.pureComputed(function ()
+				{
+					var batchDataObj = null;
+					// iterate over self.primaryBatchData() checking mBatchType against filteringBatchType()
+					if (undefined !== self.filteringBatchType())
+					{
+						for (var batchtypeIndex in self.primaryBatchData())
+						{
+							var batchtype = self.primaryBatchData()[batchtypeIndex];
+							if (batchtype.mBatchType === self.filteringBatchType())
+							{
+								//console.log(batchtype.mBatches);
+								batchDataObj = batchtype.mBatches;
+							}
+						}
+					}
+					enableInput(self);
+					return batchDataObj;
+				}, self);
+
+				
+				self.resetDefaultStep3DM = function ()
+				{
+					self.mutBatchMem(self.propMutBatchMem());
+					self.mutBatchThreads(self.propMutBatchThreads());
+					self.mutBatchPvalueCutoff(self.propMutBatchPvalueCutoff());
+					self.mutBatchZscoreCutoff(self.propMutBatchZscoreCutoff());
+				};
+				
+				self.resetDefaultStep3 = function ()
+				{
+					self.filterMaxAllowed(self.propFilterMaxAllowed());
+					self.filterLogTransformFlag(self.propFilterLogTransform());
+					console.log("populate from config self.filterLogTransformFlag() = " + self.filterLogTransformFlag());
+					self.filterLogTransformFlag2(self.propFilterLogTransform());
+					self.filterMinAllowed(self.propFilterMinAllowed());
+					self.filterMaxValue(self.filterMaxAllowed());
+					self.filteringBatchType(undefined);
+					self.filteringBatches([]);
+				};
+
+				////////////////////////////////////////////////////////////////
+				//// Step 4: Select a Correction (optional)
+				////////////////////////////////////////////////////////////////
+
+				// TODO: remove hard coding of available correction algorithms (very, very low priority)
+				self.availableCorrections = ko.observableArray([
+					{name: "none", id: "none"},
+					{name: "ANOVA-Adjusted", id: "ANOVA_adj"},
+					{name: "ANOVA-Unadjusted", id: "ANOVA_unadj"},
+					{name: "EmpiricalBayes-withParametricPriors", id: "EB_withPara"},
+					{name: "EmpiricalBayes-withNonParametricPriors", id: "EB_withNonpara"},
+					{name: "MedianPolish-ByBatch", id: "MP_batch"},
+					{name: "MedianPolish-Overall", id: "MP_overall"}
+				]);
+				if (self.secondaryBatchData().length > 0)
+				{
+					self.availableCorrections.push({name: "RBN with Replicates", id: "RBN_Replicates"});
+					self.availableCorrections.push({name: "RBN with Pseudoreplicates", id: "RBN_Pseudoreps"});
+					self.availableCorrections.push({name: "EBNPlus", id: "EBN_Plus"});
+				}
+				self.selectedBatchToCorrect = ko.observable("none");
+				self.selectedCorrection = ko.observable(self.availableCorrections()[0].id);
+				self.selectedCorrectionMinBatchSize = ko.observable(1);
+
+				//// RBN/EBNPlus Arguments
+
+				// These observables are populated from the corresponding property observables
+				// Populating an intermideiary allows the property values to be retrieved
+				// as a default
+				self.RBN_InvariantId = ko.observable(self.propRBN_InvariantId());
+				self.RBN_VariantId = ko.observable(self.propRBN_VariantId());
+				self.RBN_Matched = ko.observable(self.propRBN_Matched());
+				self.EBNPlus_GroupId1 = ko.observable(self.propEBNPlus_GroupId1());
+				self.EBNPlus_GroupId2 = ko.observable(self.propEBNPlus_GroupId2());
+				self.EBNPlus_Seed = ko.observable(self.propEBNPlus_Seed());
+				self.EBNPlus_MinSamples = ko.observable(self.propEBNPlus_MinSamples());
+
+				self.selectedUseFirstAsInvariant = ko.observable(true);
+				self.selectedRBN_InvariantId = ko.observable(self.RBN_InvariantId());
+				self.selectedRBN_VariantId = ko.observable(self.RBN_VariantId());
+				self.selectedRBN_Matched = ko.observable(self.RBN_Matched());
+				self.selectedEBNPlus_GroupId1 = ko.observable(self.EBNPlus_GroupId1());
+				self.selectedEBNPlus_GroupId2 = ko.observable(self.EBNPlus_GroupId2());
+				self.selectedEBNPlus_Seed = ko.observable(self.EBNPlus_Seed());
+				self.selectedEBNPlus_MinSamples = ko.observable(self.EBNPlus_MinSamples());
+				self.selectedRBN_InvariantReps = ko.observableArray([]);
+				self.selectedRBN_VariantReps = ko.observableArray([]);
+
+				self.computedSampleListInvariant = ko.computed(function ()
+				{
+					var myBatchData = self.primaryBatchData();
+					if (false === self.selectedUseFirstAsInvariant())
+					{
+						myBatchData = self.secondaryBatchData();
+					}
+					if (null !== myBatchData)
+					{
+						for (i = 0; i < myBatchData.length; i++)
+						{
+							if (self.sampleidBatchType() !== myBatchData[i].mBatchType)
+							{
+								return Object.keys(myBatchData[i].mBatches);
+							}
+						}
+					}
+					return [];
+				});
+
+				self.computedSampleListVariant = ko.computed(function ()
+				{
+					var myBatchData = self.secondaryBatchData();
+					if (false === self.selectedUseFirstAsInvariant())
+					{
+						myBatchData = self.primaryBatchData();
+					}
+					if (null !== myBatchData)
+					{
+						for (i = 0; i < myBatchData.length; i++)
+						{
+							if (self.sampleidBatchType() !== myBatchData[i].mBatchType)
+							{
+								return Object.keys(myBatchData[i].mBatches);
+							}
+						}
+					}
+					return [];
+				});
+
+				// The following block of code defines all of the 
+				// conditional validation settings for the RBN and EBN Plus arguments
+				self.selectedRBN_InvariantId.extend({
+					required: {
+						onlyIf: function ()
+						{
+							return self.selectedCorrection().startsWith('RBN_');
+						},
+						message: 'This argument is required for the correction methods RBN with Replicates, and RBN with Pseudoreplicates'
+					},
+					notEqual: {
+						onlyIf: function ()
+						{
+							return self.selectedCorrection().startsWith('RBN_');
+						},
+						message: 'RBN_InvariantId and RBN_VariantId must not be equivalent',
+						params: self.selectedRBN_VariantId
+					},
+					pattern: {
+						onlyIf: function ()
+						{
+							return self.selectedCorrection().startsWith('RBN_');
+						},
+						message: 'RBN_InvariantId  must be an alphanumeric of 16 characters or less (Underscores are permitted, spaces are not).',
+						params: '^[A-Za-z0-9_]{0,15}.$'
+					}
+				});
+				self.selectedRBN_VariantId.extend({
+					required: {
+						onlyIf: function ()
+						{
+							return self.selectedCorrection().startsWith('RBN_');
+						},
+						message: 'This argument is required for the correction methods RBN with Replicates, and RBN with Pseudoreplicates'
+					},
+					notEqual: {
+						onlyIf: function ()
+						{
+							return self.selectedCorrection().startsWith('RBN_');
+						},
+						message: 'RBN_VariantId and RBN_InvariantId must not be equivalent',
+						params: self.selectedRBN_InvariantId
+					},
+					pattern: {
+						onlyIf: function ()
+						{
+							return self.selectedCorrection().startsWith('RBN_');
+						},
+						message: 'RBN_InvariantId  must be an alphanumeric of 16 characters or less (Underscores are permitted, spaces are not).',
+						params: '^[A-Za-z0-9_]{0,15}.$'
+					}
+				});
+				// NOTE: For RBN with Pseudoreps we are validating against selectedRBN_InvariantReps and selectedRBN_VariantReps,
+				// rather than selectedRBN_InvariantReps and selectedRBN_VariantReps. This is done both to ensure psuedoreplicates are actually chosen.
+				self.selectedRBN_InvariantReps.extend({
+					validation:
+					[{
+							onlyIf: function ()
+							{
+								return self.selectedCorrection() === 'RBN_Pseudoreps';
+							},
+							validator: function (val)
+							{
+								return val.length > 0;
+							},
+							message: 'Please select at least one RBN Invariant Pseudoreplicate'
+						}]
+				});
+				self.selectedRBN_VariantReps.extend({
+					validation:
+					[{
+							onlyIf: function ()
+							{
+								return self.selectedCorrection() === 'RBN_Pseudoreps';
+							},
+							validator: function (val)
+							{
+								return val.length > 0;
+							},
+							message: 'Please select at least one RBN Variant Pseudoreplicate'
+						}]
+				});
+				self.selectedEBNPlus_GroupId1.extend({
+					required: {
+						onlyIf: function ()
+						{
+							return self.selectedCorrection() === 'EBN_Plus';
+						},
+						message: 'This argument is required for the correction method EBN Plus'
+					},
+					notEqual: {
+						onlyIf: function ()
+						{
+							return self.selectedCorrection() === 'EBN_Plus';
+						},
+						message: 'EBNPlus_GroupId1 and EBNPlus_GroupId2 must not be equivalent',
+						params: self.selectedEBNPlus_GroupId2
+					},
+					pattern: {
+						onlyIf: function ()
+						{
+							return self.selectedCorrection() === 'EBN_Plus';
+						},
+						message: 'EBNPlus_GroupId1  must be an alphanumeric of 16 characters or less (Underscores are permitted, spaces are not).',
+						params: '^[A-Za-z0-9_]{0,15}.$'
+					}
+				});
+				self.selectedEBNPlus_GroupId2.extend({
+					required: {
+						onlyIf: function ()
+						{
+							return self.selectedCorrection() === 'EBN_Plus';
+						},
+						message: 'This argument is required for the correction method EBN Plus'
+					},
+					notEqual: {
+						onlyIf: function ()
+						{
+							return self.selectedCorrection() === 'EBN_Plus';
+						},
+						message: 'EBNPlus_GroupId2 and EBNPlus_GroupId1 must not be equivalent',
+						params: self.selectedEBNPlus_GroupId1
+					},
+					pattern: {
+						onlyIf: function ()
+						{
+							return self.selectedCorrection() === 'EBN_Plus';
+						},
+						message: 'EBNPlus_GroupId2  must be an alphanumeric of 16 characters or less (Underscores are permitted, spaces are not).',
+						params: '^[A-Za-z0-9_]{0,15}.$'
+					}
+				});
+				self.selectedEBNPlus_Seed.extend({
+					required: {
+						onlyIf: function ()
+						{
+							return self.selectedCorrection() === 'EBN_Plus';
+						},
+						message: 'EBN Plus Random Number Seed is a required argument when the selected correction method is EBN Plus'
+					}
+				});
+				self.selectedEBNPlus_MinSamples.extend({
+					required: {
+						onlyIf: function ()
+						{
+							return self.selectedCorrection() === 'EBN_Plus';
+						},
+						message: 'EBN Plus Min Samples is a required argumnet when the selected correction method is EBN Plus'
+					}
+				});
+
+				self.resetDefaultStep4 = function ()
+				{
+					console.log("resetDefaultStep4");
+					self.selectedBatchToCorrect("none");
+					self.selectedCorrection(self.availableCorrections()[0].id);
+					self.selectedCorrectionMinBatchSize(1);
+
+					self.RBN_InvariantId(self.propRBN_InvariantId());
+					self.RBN_VariantId(self.propRBN_VariantId());
+					self.RBN_Matched(self.propRBN_Matched());
+					self.EBNPlus_GroupId1(self.propEBNPlus_GroupId1());
+					self.EBNPlus_GroupId2(self.propEBNPlus_GroupId2());
+					self.EBNPlus_Seed(self.propEBNPlus_Seed());
+					self.EBNPlus_MinSamples(self.propEBNPlus_MinSamples());
+
+					self.selectedUseFirstAsInvariant(true);
+					self.selectedRBN_InvariantId(self.RBN_InvariantId());
+					self.selectedRBN_VariantId(self.RBN_VariantId());
+					self.selectedRBN_Matched(self.RBN_Matched());
+					self.selectedEBNPlus_GroupId1(self.EBNPlus_GroupId1());
+					self.selectedEBNPlus_GroupId2(self.EBNPlus_GroupId2());
+					self.selectedEBNPlus_Seed(self.EBNPlus_Seed());
+					self.selectedEBNPlus_MinSamples(self.EBNPlus_MinSamples());
+					self.selectedRBN_InvariantReps([]);
+					self.selectedRBN_VariantReps([]);
+				};
+
+				////////////////////////////////////////////////////////////////
+				//// Step 5: Select PCA-Plus/DSC Arguments
+				////////////////////////////////////////////////////////////////
+				// populate from config file
+				self.maxDscThreads = ko.observable(self.propMaxDscThreads());
+				// populate from config file
+				self.maxDscGeneCount = ko.observable(self.propMaxDscGeneCount());
+				self.maxDscPermutations = ko.observable(self.propMaxDscPermutations());
+				self.selectedDSCPermutations = ko.observable(2000);
+				self.selectedDSCThreads = ko.observable(self.maxDscThreads());
+				self.selectedDSCMinBatchSize = ko.observable(5);
+				self.selectedDSCSeed = ko.observable(314);
+				self.selectedDSCMaxGeneCount = ko.observable(self.maxDscGeneCount());
+
+				self.resetDefaultStep5 = function ()
+				{
+					self.selectedDSCPermutations(2000);
+					self.selectedDSCThreads(self.maxDscThreads());
+					self.selectedDSCMinBatchSize(5);
+					self.selectedDSCSeed(314);
+					self.selectedDSCMaxGeneCount(self.maxDscGeneCount());
+				};
+
+				////////////////////////////////////////////////////////////////
+				//// Step 6: Select Boxplot Arguments
+				////////////////////////////////////////////////////////////////
+				// populate from config file
+				self.minBoxplotGeneCount = ko.observable(self.propMinBoxplotGeneCount());
+				// populate from config file
+				self.maxBoxplotGeneCount = ko.observable(self.propMaxBoxplotGeneCount());
+				self.selectedBoxplotMaxGeneCount = ko.observable(self.maxBoxplotGeneCount());
+
+				self.resetDefaultStep6 = function ()
+				{
+					self.selectedBoxplotMaxGeneCount(self.maxBoxplotGeneCount());
+				};
+
+				////////////////////////////////////////////////////////////////
+				//// Step 7: NGCHM Arguments
+				////////////////////////////////////////////////////////////////
+				self.selectedNgchmFlag = ko.observable(true);
+				// populate from config file
+				// ngchmRowType	bio.metabolite.MW.name.|.bio.metabolite.refmet.|.bio.compound.pubchem.|.bio.metabolite.MW.regno.|.bio.metabolite.hmdb.|.bio.compound.kegg.|.bio.compound.chebi.|.bio.compound.metacyc
+				// ngchmColumnType	bio.metabolite.MW.name
+				self.ngchmRowType = ko.observable(self.propNgchmRowType());
+				self.ngchmColumnType = ko.observable(self.propNgchmColumnType());
+				
+				self.resetDefaultStep7 = function ()
+				{
+					self.selectedNgchmFlag(true);
+				};
+
+				// *************************************************************
+				// *************************************************************
+				// ** Last: Check for job id, read job status and data
+				// *************************************************************
+				// *************************************************************
+
+				// runs on initial load of page, to refresh job status if returning to previously bookmarked job
+				var myJob = getParameterByName("job");
+
+				self.jobId = ko.observable(myJob);
+				self.jobState = ko.observable("");
+				self.jobMessage = ko.observable("");
+				self.jobTail = ko.observableArray([]);
+				self.jobTag = ko.observable("");
+				self.jobOwner = ko.observable("");
+				self.jobEmail = ko.observable("");
+				self.jobAuthUsers = ko.observableArray([]);
+				self.jobAuthRoles = ko.observableArray([]);
+
+				refreshJobStatus(self, self.jobId());
+
+				goToPageBasedOnState(self.jobState(), self.jobId());
+
+				self.ajaxMBatchConfig = function (theAction)
+				{
+					console.log("MBatchConfig self.filterLogTransformFlag() = " + self.filterLogTransformFlag());
+					// action should be initialize, write, or read
+					$.ajax(
+					{
+						type: "GET",
+						dataType: 'json',
+						async: false,
+						url: "MBatchConfig",
+						cache: false,
+						data:
+						{
+							action: theAction,
+							jobId: self.jobId(),
+							configDesc: self.mbatchMethodSelectValue(),
+							sampleidBatchType: self.sampleidBatchType(),
+							batchTypesForMBatchArray: (self.batchTypesForMBatch().length === 0) ? 'null' : self.batchTypesForMBatch().toString(),
+							// mutbatch and discrete settings
+							// "MBatch Continuous", "MBatch Discrete", "MutBatch"
+							mutBatchFlag: ("MBatch Discrete"===self.mbatchMethodSelectValue())?"TRUE":"FALSE",
+							mutationsMutbatchFlag: ("MutBatch"===self.mbatchMethodSelectValue())?"TRUE":"FALSE",
+							mutBatchMem: self.mutBatchMem(),
+							mutBatchThreads: self.mutBatchThreads(),
+							mutBatchPvalueCutoff: self.mutBatchPvalueCutoff(),
+							mutBatchZscoreCutoff: self.mutBatchZscoreCutoff(),
+							// general filter settings
+							filterMaxValue: self.filterMaxValue(),
+							filterLogTransformFlag: self.filterLogTransformFlag(),
+							filteringBatchType: (undefined === self.filteringBatchType()) ? 'null' : self.filteringBatchType(),
+							filteringBatchesArray: (undefined === self.filteringBatchType()) || (self.filteringBatches().length === 0) ? 'null' : self.filteringBatches().toString(),
+							CDP_Flag: ("MBatch Continuous"===self.mbatchMethodSelectValue())?self.mbatchCDPFlag():"FALSE",
+							selectedBatchToCorrect: self.selectedBatchToCorrect(),
+							selectedCorrection: ('none' === self.selectedCorrection()) ? 'null' : self.selectedCorrection(),
+							selectedCorrectionMinBatchSize: self.selectedCorrectionMinBatchSize(),
+							selectedDSCPermutations: self.selectedDSCPermutations(),
+							selectedDSCThreads: self.selectedDSCThreads(),
+							selectedDSCMinBatchSize: self.selectedDSCMinBatchSize(),
+							selectedDSCSeed: self.selectedDSCSeed(),
+							selectedDSCMaxGeneCount: self.selectedDSCMaxGeneCount(),
+							selectedBoxplotMaxGeneCount: self.selectedBoxplotMaxGeneCount(),
+							selectedNgchmFlag: ("MBatch Continuous"===self.mbatchMethodSelectValue())?self.selectedNgchmFlag():"FALSE",
+							ngchmRowType: self.ngchmRowType(),
+							ngchmColumnType: self.ngchmColumnType(),
+							// Some of these data arguments have inline conditional statements which make sure
+							// that all RBN/EBNplus arguments which are irrelevant to the selectedCorrection choice are set to 'NULL'
+							filterLogTransformFlag2: self.filterLogTransformFlag2(),
+							RBN_Only: 'false',
+							RBN_UseFirstAsInvariantFlag: (self.selectedCorrection().startsWith('RBN_')) ? self.selectedUseFirstAsInvariant() : 'null',
+							RBN_InvariantId: (self.selectedCorrection().startsWith('RBN_')) ? self.selectedRBN_InvariantId() : 'null',
+							RBN_VariantId: (self.selectedCorrection().startsWith('RBN_')) ? self.selectedRBN_VariantId() : 'null',
+							RBN_Matched: (self.selectedCorrection().startsWith('RBN_')) ? self.selectedRBN_Matched() : 'null',
+							RBN_InvariantRepsType: (self.selectedCorrection().startsWith("RBN_Pseudoreps")) ? self.sampleidBatchType() : 'null',
+							RBN_VariantRepsType: (self.selectedCorrection() === "RBN_Pseudoreps") ? self.sampleidBatchType() : 'null',
+							RBN_InvariantRepsArray: (self.selectedCorrection() === "RBN_Pseudoreps") && (self.selectedRBN_InvariantReps().length > 0) ? self.selectedRBN_InvariantReps().toString() : 'null',
+							RBN_VariantRepsArray: (self.selectedCorrection() === "RBN_Pseudoreps") && (self.selectedRBN_InvariantReps().length > 0) ? self.selectedRBN_VariantReps().toString() : 'null',
+							EBNPlus_GroupId1: (self.selectedCorrection() === 'EBN_Plus') ? self.selectedEBNPlus_GroupId1() : 'null',
+							EBNPlus_GroupId2: (self.selectedCorrection() === 'EBN_Plus') ? self.selectedEBNPlus_GroupId2() : 'null',
+							EBNPlus_Seed: (self.selectedCorrection() === 'EBN_Plus') ? self.selectedEBNPlus_Seed() : 'null',
+							EBNPlus_MinSamples: (self.selectedCorrection() === 'EBN_Plus') ? self.selectedEBNPlus_MinSamples() : 'null'
+						},
+						beforeSend: function ()
+						{
+							disableInput(self);
+						},
+						complete: function ()
+						{
+							enableInput(self);
+						},
+						success: function (theJson)
+						{
+							console.log("MBatchConfig success");
+							if (notUN(theJson.configDesc))
+							{
+								self.mbatchMethodSelectValue(theJson.configDesc);
+							}
+							else
+							{
+								self.mbatchMethodSelectValue("MBatch Continuous");
+							}
+							self.sampleidBatchType(theJson.sampleidBatchType);
+							self.selectedCorrection(('null' === theJson.selectedCorrection) ? 'none' : theJson.selectedCorrection);
+							self.batchTypesForMBatch(('null' === theJson.batchTypesForMBatchArray) ? [] : theJson.batchTypesForMBatchArray);
+							self.mutBatchMem(theJson.mutBatchMem);
+							self.mutBatchThreads(theJson.mutBatchThreads);
+							self.mutBatchPvalueCutoff(theJson.mutBatchPvalueCutoff);
+							self.mutBatchZscoreCutoff(theJson.mutBatchZscoreCutoff);
+							self.filterMaxValue(theJson.filterMaxValue);
+							console.log("ajaxMBatchConfig::success self.filterLogTransformFlag() = " + self.filterLogTransformFlag());
+							self.filterLogTransformFlag((('true' === theJson.filterLogTransformFlag)||('TRUE' === theJson.filterLogTransformFlag)) ? true : false);
+							self.filterLogTransformFlag2((('true' === theJson.filterLogTransformFlag2)||('TRUE' === theJson.filterLogTransformFlag2)) ? true : false);
+							self.filteringBatchType(('null' === theJson.filteringBatchType) ? undefined : theJson.filteringBatchType);
+							self.filteringBatches(('null' === theJson.filteringBatchType) ? [] : theJson.filteringBatchesArray);
+							self.mbatchCDPFlag(theJson.CDP_Flag);
+							self.selectedBatchToCorrect(theJson.selectedBatchToCorrect);
+							self.selectedCorrectionMinBatchSize(theJson.selectedCorrectionMinBatchSize);
+							self.selectedDSCPermutations(theJson.selectedDSCPermutations);
+							self.selectedDSCThreads(theJson.selectedDSCThreads);
+							self.selectedDSCMinBatchSize(theJson.selectedDSCMinBatchSize);
+							self.selectedDSCSeed(theJson.selectedDSCSeed);
+							self.selectedDSCMaxGeneCount(theJson.selectedDSCMaxGeneCount);
+							self.selectedBoxplotMaxGeneCount(theJson.selectedBoxplotMaxGeneCount);
+							self.selectedNgchmFlag(theJson.selectedNgchmFlag);
+							self.ngchmRowType(theJson.ngchmRowType);
+							self.ngchmColumnType(theJson.ngchmColumnType);
+							self.selectedUseFirstAsInvariant(('null' === theJson.selectedCorrection) ? self.selectedUseFirstAsInvariant() : theJson.RBN_UseFirstAsInvariantFlag);
+							self.selectedRBN_InvariantId(('null' === theJson.selectedCorrection) ? self.selectedRBN_InvariantId() : theJson.RBN_InvariantId);
+							self.selectedRBN_VariantId(('null' === theJson.selectedCorrection) ? self.selectedRBN_VariantId() : theJson.RBN_VariantId);
+							self.selectedRBN_Matched(('null' === theJson.selectedCorrection) ? self.selectedRBN_Matched() : theJson.RBN_Matched);
+							self.selectedRBN_InvariantReps(('null' === theJson.selectedCorrection) ? self.selectedRBN_InvariantReps() : theJson.RBN_InvariantRepsArray);
+							self.selectedRBN_VariantReps(('null' === theJson.selectedCorrection) ? self.selectedRBN_VariantReps() : theJson.RBN_VariantRepsArray);
+							self.selectedEBNPlus_GroupId1(('null' === theJson.selectedCorrection) ? self.selectedEBNPlus_GroupId1() : theJson.EBNPlus_GroupId1);
+							self.selectedEBNPlus_GroupId2(('null' === theJson.selectedCorrection) ? self.selectedEBNPlus_GroupId2() : theJson.EBNPlus_GroupId2);
+							self.selectedEBNPlus_Seed(('null' === theJson.selectedCorrection) ? self.selectedEBNPlus_Seed() : theJson.EBNPlus_Seed);
+							self.selectedEBNPlus_MinSamples(('null' === theJson.selectedCorrection) ? self.selectedEBNPlus_MinSamples() : theJson.EBNPlus_MinSamples);
+							console.log("N self.sampleidBatchType()=" + self.sampleidBatchType());
+						},
+						error: function (jqXHR, textStatus, errorThrown)
+						{
+							console.log("MBatchConfig:init :" + textStatus + " and " + errorThrown);
+							alert("MBatchConfig:init :" + textStatus + " and " + errorThrown);
+						}
+					});
+				};
+
+				self.ajaxMBatchConfig('initialize');
+
+				self.resetDefault3to7 = function ()
+				{
+					self.resetDefaultStep3();
+					self.resetDefaultStep4();
+					self.resetDefaultStep5();
+					self.resetDefaultStep6();
+					self.resetDefaultStep7();
+				};
+
+				self.doMBatchRun = function ()
+				{
+					// pass needed values to create MBatch config file
+					self.ajaxMBatchConfig('write');
+
+					$.ajax(
+					{
+						type: "GET",
+						dataType: 'text',
+						async: true,
+						url: "JOBRunMBatch",
+						cache: false,
+						data:
+						{
+							jobId: self.jobId()
+						},
+						beforeSend: function ()
+						{
+							disableInput(self);
+						},
+						complete: function ()
+						{
+							enableInput(self);
+						},
+						success: function (theText)
+						{
+							refreshJobStatus(self, self.jobId());
+							goToPageBasedOnState(self.jobState(), self.jobId());
+						},
+						error: function (jqXHR, textStatus, errorThrown)
+						{
+							self.enableInput();
+							console.log("JOBRunMBatch :" + textStatus + " and " + errorThrown);
+							alert("JOBRunMBatch :" + textStatus + " and " + errorThrown);
+						}
+					});
+				};
+				
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				//// END
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////////////////////////////////////////////////////////////////////////////
+
+				// this is used to prevent "flickering" characteristic on load with knockoutJS
+				self.makeGuiVisible(true);
+			} //End Appview Model
+		</script>
+		<link href="mba.css" rel="stylesheet" type="text/css">
+		<link href="tippy.css" rel="stylesheet" type="text/css">
+
+	</head>
+	<body style="display: none;" data-bind="visible: $root.makeGuiVisible()">
+		<div class="mdaServiceHeader">
+			<a href="https://bioinformatics.mdanderson.org/public-software/tcga-batch-effects/" target="_blank"><img class="mdaServiceHeaderLogo" src="mdandersonlogo300x54.png" alt="MDA Logo"></a>
+			<span class="mdaServiceHeaderTitle">
+				MetaBatch Analyzer
+				<span class="mdaServiceHeaderTitle" style="margin: 0; padding: 0;" data-bind="text:$root.serverTitle()"></span>
+				<small>BEA_VERSION_TIMESTAMP</small>
+				<small style="float: right;">
+					<a href="MBatch_04-99_Statistics.html" target="_blank">Statistics</a>
+					/
+					<a href="https://github.com/MD-Anderson-Bioinformatics/MetaBatchAnalyzer/tree/master/docs" target="_blank">Help</a>
+					/
+					<a href="https://github.com/MD-Anderson-Bioinformatics/MetaBatchAnalyzer" target="_blank">GitHub</a>
+				</small>
+			</span>
+		</div>
+		<hr>
+		<span>
+			<button class="buttons homeButton" id="homeButton" data-bind="click: function(data, event) { goHome(); }" >Home</button>
+			<button class="buttons loginButton" id="loginButton" data-bind="visible: 'true'===$root.propAllowLogin()&&''===$root.currentUserName(),click: function(data, event) { goAuthUpdate(); }" >Login</button>
+			<button class="buttons logoutButton" id="logoutButton" data-bind="visible: !(''===$root.currentUserName()),click: function(data, event) { goAuthOut(); }" >Logout</button>
+			<span class="textTitles" data-bind="text:$root.currentUserName()"></span>&nbsp;
+			<small>
+				<strong>Job Id:</strong><span data-bind="text:$root.jobId()"></span>&nbsp;
+				<strong>Job State:</strong><span data-bind="text:$root.jobState()"></span>&nbsp;
+				<strong>Job Message:</strong><span data-bind="text:$root.jobMessage()"></span>&nbsp;
+			</small>
+			<button class="buttons editButton" id="editButton" data-bind="click: function(data, event) { goToEditPage($root.jobId()); }" >Edit Details</button>
+		</span>
+		<hr>
+		<div class="roundedBox">
+			<!-- *************************************************************** -->
+			<!-- **** Step 2a: Select Batches *********************************** -->
+			<!-- *************************************************************** -->
+			<strong>Step 2a: Select Batches</strong>
+			<div style="float: right;">
+				<button data-bind="click: function(data, event) { $root.resetDefaultStep2(); }" class="buttons">Reset Defaults</button>
+			</div>
+			<div class="marginLeft10px"><!--data-bind="visible: !$root.isUploadMBatchConfigChecked()"-->
+				<div>Select Sample Identifier (Select Sample Id Batch Type):
+					<select class="largeInputAndSelect" id="sampleIdBatchTypeSelect" data-bind="value: $root.sampleidBatchType, options: $root.primaryBatchTypes"></select>
+					<span class="tooltip">
+						<img id="tooltipImage_sampleIdBatchTypeSelect" src="images/Tooltip_icon.png" title="Sample Identifier" data-theme="myTooltipTheme" class="guiIconDimensions" alt="More Info">
+						<span id="tooltipContent_sampleIdBatchTypeSelect" class="tooltiptext">
+							Sample Identifier: <br><br>
+							This indicates which column contains the sample (or barcode) identifier in the batches data.
+							For Standardized Data and GDC Data, this column should be "Sample".
+						</span>
+					</span>
+				</div>
+				<div data-bind="visible: (''!==$root.sampleidBatchType())">Selected Types for Batch Analysis: 
+					<span data-bind="text: $root.batchTypesForMBatch"></span>
+				</div>
+				<div class="mdaRounded largeTableBoxes" data-bind="visible: (''!==$root.sampleidBatchType())">
+					<table class="mdaCollapsedTable" style="width: 100%">
+						<thead>
+							<tr>
+								<th class="textTitles" style="text-align: center;">Batch Type to Check</th>
+								<th class="textTitles">Batch Type Name</th>
+								<th style="width: 70%;" class="textTitles">Batch Summary (Batch Name and Count)</th>
+							</tr>
+						</thead>
+						<tbody data-bind="foreach: { data: $root.primaryBatchData, as: 'batchDataObj' }">
+							<tr class="bottomBorders" data-bind="visible: (!(batchDataObj.mBatchType===$root.sampleidBatchType())),
+												attr: { 'data-mBatchType': batchDataObj.mBatchType}">
+								<td style="text-align: center;">
+									<input class="batchTypesForMBatchCheck" type="checkbox" 
+										   data-bind="value: batchDataObj.mBatchType, checked: $root.batchTypesForMBatch" />
+								</td>
+								<td style="text-align: left;"><span data-bind="text: batchDataObj.mBatchType"></span></td>
+								<td style="text-align: left; width: 70%;">
+									<!-- KnockoutJS commands in comments are "virtual elements -->
+									<!-- see: http://knockoutjs.com/documentation/custom-bindings-for-virtual-elements.html -->
+									<!-- ko foreach: { data: batchDataObj.mBatches, as: 'batchSet' } -->
+									<!-- ko foreach: { data: Object.keys(batchSet), as: 'individualBatch' } -->
+									<span data-bind="text: individualBatch + ':' + batchSet[individualBatch]"></span>&nbsp;
+									<!-- /ko --> 
+									<!-- /ko -->
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+		
+		<div class="roundedBox">
+			<!-- *************************************************************** -->
+			<!-- **** Step 2b: Select MBatch Method *********************************** -->
+			<!-- *************************************************************** -->
+			<strong>Step 2b: Select MBatch Method</strong>
+			<div class="marginLeft10px">
+				<div>Select MBatch Method:
+					<select class="largeInputAndSelect" id="mbatchMethodSelect" 
+							data-bind="value: $root.mbatchMethodSelectValue, options: $root.mbatchMethodSelectOptions"></select>
+					<span class="tooltip">
+						<img id="tooltipImage_mbatchMethodSelect" src="images/Tooltip_icon.png" title="MBatch Methods" 
+							 data-theme="myTooltipTheme" class="guiIconDimensions" alt="More Info">
+						<span id="tooltipContent_mbatchMethodSelect" class="tooltiptext">
+							MBatch Methods <br><br>
+							Run MBatch Continuous (normal MBatch for continuous data), or MBatch Discrete (for discrete data), or MutBatch (for comparing multiple MAF files).
+						</span>
+					</span>
+				</div>
+			</div>
+		</div>
+
+		<div data-bind="visible: $root.isReadyAndMBatchDiscrete()||$root.isReadyAndMutBatch()">
+			<!-- *************************************************************** -->
+			<!-- **** Step 3: Select Discrete/MutBatch Options ************************* -->
+			<!-- *************************************************************** -->
+			<div class="roundedBox">
+				<strong>Step 3: Select Discrete/MutBatch Options</strong>
+				<div style="float: right;">
+					<button data-bind="click: function(data, event) { $root.resetDefaultStep3DM(); }" class="buttons">Reset Defaults</button>
+				</div>
+				<div>
+					<table class="mbatchconfigInputTable">
+						<tr>
+							<td style="text-align: left;">
+								Memory for Discrete/MutBatch Processing:
+							</td>
+							<td>
+								<select class="largeInputAndSelect" data-bind="value: $root.mutBatchMem">
+									<option value="1000m">1000m</option>
+									<option value="8000m">8000m</option>
+									<option value="12000m">12,000m</option>
+									<option value="16000m">16,000m</option>
+									<option value="20000m">20,000m</option>
+									<option value="24000m">24,000m</option>
+									<option value="32000m">32,000m</option>
+								</select>
+								<span class="tooltip">
+									<img id="tooltipImage_MutBatchMem" title="Memory for Discrete/MutBatch Processing" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
+									<span id="tooltipContent_MutBatchMem" class="tooltiptext">Memory for Discrete/MutBatch Processing:<br><br>
+										Memory for Discrete/MutBatch Processing, argument to Java, used to perform Discrete/MutBatch calculations. 
+										Commas are only used for display legibility purposes.
+										Generally, use the default value.</span>
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td style="text-align: left;">
+								Number of Discrete/MutBatch Threads (1-<span data-bind="text: $root.maxDscThreads"></span>):
+							</td>
+							<td>
+								<input class="smallInputAndSelect" type="number" min="1" data-bind="value: $root.mutBatchThreads, attr: { max: $root.maxDscThreads }" />
+								<span class="tooltip">
+									<img id="tooltipImage_DiscreteMutBatchThreads" title="Number of Discrete/MutBatch Threads" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
+									<span id="tooltipContent_DiscreteMutBatchThreads" class="tooltiptext">Number of Discrete/MutBatch Threads:<br><br>
+										Number of threads (usually equal to the desired number of cores) used to perform Discrete/MutBatch calculations. 
+										Generally, use the default value.</span>
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td style="text-align: left;">
+								P-Value Cutoff for Significance:
+							</td>
+							<td>
+								<input class="smallInputAndSelect" type="number" step="0.00001" data-bind="value: $root.mutBatchPvalueCutoff" />
+								<span class="tooltip">
+									<img id="tooltipImage_MutBatchPvalueCutoff" title="Number of Discrete/MutBatch Threads" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
+									<span id="tooltipContent_MutBatchPvalueCutoff" class="tooltiptext">P-Value Cutoff for Significance:<br><br>
+										P-value to use for cutoff for "significant" difference in Kruskal-Wallis and Dunn's tests.
+										Generally, use the default value.</span>
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td style="text-align: left;">
+								Z-Score Cutoff for Significance:
+							</td>
+							<td>
+								<input class="smallInputAndSelect" type="number" step="0.01" data-bind="value: $root.mutBatchZscoreCutoff" />
+								<span class="tooltip">
+									<img id="tooltipImage_MutBatchZscoreCutoff" title="Z-Score Cutoff for Significance" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
+									<span id="tooltipContent_MutBatchZscoreCutoff" class="tooltiptext">Z-Score Cutoff for Significance:<br><br>
+										Z-score cut off for Dunn's test for "significant" confidence interval.
+										Generally, use the default value.</span>
+								</span>
+							</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+		
+		<div data-bind="visible: $root.isReadyAndMBatchContinuous()">
+			<!-- *************************************************************** -->
+			<!-- **** Step 3: Select Filtering Options ************************* -->
+			<!-- *************************************************************** -->
+			<div class="roundedBox">
+				<strong>Step 3: Select Filtering Options</strong>
+				<div style="float: right;">
+					<button data-bind="click: function(data, event) { $root.resetDefaultStep3(); }" class="buttons">Reset Defaults</button>
+				</div>
+				<div class="marginLeft10px">Log Transform Data:
+					<input type="checkbox" data-bind="checked: $root.filterLogTransformFlag" />
+					<div class="tooltip inlineblock">
+						<img id="tooltipImage_LogTransform" title="Select Filtering Options" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
+						<div id="tooltipContent_LogTransform" class="tooltiptext">Log Transform Data:<br><br>
+							Log transform data using .1 percentile, after removing zeros and NAs, to add before logging.
+							Breakdown of known GDC platforms and transformation recommendations.
+							<table>
+								<tr><td>GISTIC</td><td>log transform</td></tr>
+								<tr><td>MuSE</td><td>log transform</td></tr>
+								<tr><td>MuTect2</td><td>log transform</td></tr>
+								<tr><td>RNASeq-Counts</td><td>log transform</td></tr>
+								<tr><td>RNASeq-fpkm</td><td>log transform</td></tr>
+								<tr><td>RNASeq-fpkmuq</td><td>log transform</td></tr>
+								<tr><td>SNP6-noconv-noXY</td><td>no post processing</td></tr>
+								<tr><td>SomaticSniper</td><td>log transform</td></tr>
+								<tr><td>VarScan2</td><td>log transform</td></tr>
+								<tr><td>methylation</td><td>no post processing</td></tr>
+								<tr><td>methylation-noXY</td><td>no post processing</td></tr>
+								<tr><td>miRNA-gene</td><td>log transform</td></tr>
+								<tr><td>miRNA-isoform</td><td>log transform</td></tr>
+								<tr><td>RNASeq-v1-gene</td><td>log transformed</td></tr>
+								<tr><td>RNASeq-v2-gene</td><td>log transformed</td></tr>
+								<tr><td>RNASeq-v2-isoform</td><td>log transformed</td></tr>
+								<tr><td>RPPA</td><td>No Post Processing</td></tr>
+								<tr><td>SNP6-nocnv-noXY</td><td>No Post Processing</td></tr>
+								<tr><td>methylation</td><td>No Post Processing</td></tr>
+								<tr><td>methylation-noXY</td><td>No Post Processing</td></tr>
+								<tr><td>miRNA-gene</td><td>log transform</td></tr>
+								<tr><td>miRNA-isoform</td><td>log transformed</td></tr>
+								<tr><td>mutations-illuminaga-gsc</td><td>log transform</td></tr>
+								<tr><td>mutations-illuminaga-hgsc</td><td>log transform</td></tr>
+								<tr><td>mutations-illuminaga-ucsc</td><td>log transform</td></tr>
+								<tr><td>mutations-illuminahiseq-bcgsc</td><td>log transform</td></tr>
+								<tr><td>mutations-illuminahiseq-wustl</td><td>log transform</td></tr>
+							</table>
+						</div>
+					</div>
+				</div>
+				<div class="marginLeft10px">Auto-Filter to Maximum Number of Values:
+					<div class="marginLeft10px"> 
+						Max Number of Values: 
+						<input type="number" data-bind="value: $root.filterMaxValue, attr: {max: $root.filterMaxAllowed, min: $root.filterMinAllowed }" />
+						<div class="tooltip inlineblock">
+							<img id="tooltipImage_SelectFiltering" title="Select Filtering Options" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
+							<div id="tooltipContent_SelectFiltering" class="tooltiptext">Maximum Number of Values:<br><br>
+								Maximum number of cells allowed in the data matrix. Matrix size is reduced by filtering features 
+								(such as, genes or probes) based on using IQR (interquartile range) as a measurement of variant, 
+								with the assumption that batch effects are more likely to be found where there is large variation. 
+								0 means no filtering. Minimum value is <span data-bind="text: $root.filterMinAllowed"></span>. 
+								Recommended maximum value is <span data-bind="text: $root.filterMaxAllowed"></span>.</div>
+						</div>
+					</div>
+				</div>
+				<div class="marginLeft10px">
+					<div class="marginTop10px">Exclude User Specified Batches:
+						<div class="marginLeft10px">
+							Batch Type for Exclusion:
+							<select id="filteringBatchTypeSelect" class="largeInputAndSelect" 
+									data-bind="value: $root.filteringBatchType, 
+												options: $root.primaryBatchTypes,
+												optionsCaption: 'Select Optional Batch Type for Exclusion'"></select>
+							<span class="tooltip">
+								<img id="tooltipImage_ExcludeBatches" title="Batch Type For Exclusion" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
+								<span id="tooltipContent_ExcludeBatches"  class="tooltiptext">Exclude User Specified Batches:<br><br>
+									Select a batch type from the selection box to the left to be presented with a list of batches within that type. 
+									Check boxes to exclude specific batches from processing.</span>
+							</span>
+						</div>
+					</div>
+					<div class="mdaRounded" data-bind="visible: (undefined!==$root.filteringBatchType())">
+						Selected Batches: <span data-bind="text: $root.filteringBatches()"></span><br>
+						<table class="mdaCollapsedTable" style="width:100%;">
+							<!-- KnockoutJS commands in comments are "virtual elements -->
+							<!-- see: http://knockoutjs.com/documentation/custom-bindings-for-virtual-elements.html -->
+							<!-- ko with: getFilteringBatches() -->
+							<thead>
+								<tr>
+									<td class="textTitles" style="text-align: center"><strong>Exclude</strong></td>
+									<td class="textTitles" style="text-align: center;"><strong>Batch Name: Count</strong></td>
+								</tr>
+							</thead>
+							<tbody data-bind="foreach: { data: Object.keys($data), as: 'batchKey' }">
+								<tr>
+									<td style="text-align: center"><input type="checkbox" data-bind="value: batchKey, checked: $root.filteringBatches" /></td>
+									<td style="text-align: center"><span data-bind="text: batchKey + ':' + $parent[batchKey]"></span>&nbsp;</td>
+								</tr>
+							</tbody>
+							<!-- /ko -->
+						</table>
+					</div>
+				</div>
+			</div>
+			<!-- *************************************************************** --> 
+			<!-- **** Step 4: Select a Correction (optional) ******************* --> 
+			<!-- *************************************************************** -->
+			<div class="roundedBox">
+				<strong>Step 4: Select a Correction (optional)</strong>
+				<div style="float: right;">
+					<button data-bind="click: function(data, event) { $root.resetDefaultStep4(); }" class="buttons">Reset Defaults</button>
+				</div>
+				<div class="marginLeft10px">
+					Correction Type:
+					<select class="largeInputAndSelect" data-bind="options: $root.availableCorrections, optionsValue: 'id', optionsText: 'name', value: $root.selectedCorrection"></select>
+					<span class="tooltip">
+						<img id="tooltipImage_CorrectionType" src="images/Tooltip_icon.png" title="Correction Type" data-theme="myTooltipTheme" class="guiIconDimensions" alt="More Info">
+						<span id="tooltipContent_CorrectionType" class="tooltiptext">
+							Correction Method: <br><br>
+							Select a correction method and related settings for the correction. 
+							Note that not all correction methods are appropriate for all data and most will drop genes with NAs in their data. 
+							Some correction algorithms are based on correcting one set of data against a second data set.
+							Corrections methods requiring two data sets will not be displayed if only one dataset is available.
+						</span>
+					</span>
+				</div>
+				<div class="marginLeft10px" data-bind="visible: 'none'!==$root.selectedCorrection()">
+					<div class="marginTop10px">Correlation Density Plot (CDP) for Original versus Corrected Data:
+						<div class="marginLeft10px">
+							<input type="checkbox" data-bind="checked: $root.mbatchCDPFlag"/>Select to generate CDP
+							<span class="tooltip">
+								<img id="tooltipImage_CDP" title="Correlation Density Plot (CDP) for Original versus Corrected Data" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
+								<span id="tooltipContent_CDP"  class="tooltiptext">Correlation Density Plot (CDP) for Original versus Corrected Data:<br><br>
+									Use Pearson and pairwise.complete.obs to perform a Correlation Density Plot comparing the original data set(s) and the corrected data.</span>
+							</span>
+						</div>
+					</div>
+				</div>
+				<div class="marginTop10px" data-bind="visible: ($root.selectedCorrection().startsWith('ANOVA_') || $root.selectedCorrection().startsWith('EB_') || $root.selectedCorrection().startsWith('MP_'))">
+					Batch Type to Correct: 
+					<select id="selectedBatchToCorrectSelect" class="largeInputAndSelect" data-bind="options: $root.batchTypesForMBatch, value: $root.selectedBatchToCorrect"></select>
+					<span class="tooltip">
+						<img id="tooltipImage_BatchtoCorrect" src="images/Tooltip_icon.png" title="Batch Type to Correct" data-theme="myTooltipTheme" class="guiIconDimensions" alt="More Info">
+						<span id="tooltipContent_BatchtoCorrect" class="tooltiptext">Batch Type to Correct: <br><br>Select a batch type to which the correction algorithm will be applied.</span>
+					</span>
+					<div>
+						Minimum Valid Batch Size for Corrections:
+						<input type="number" min="0" data-bind="value: $root.selectedCorrectionMinBatchSize"/>
+						<span class="tooltip">
+							<img id="tooltipImage_MinValidBatchSize" src="images/Tooltip_icon.png" title="Min Valid Batch Size for Correction" data-theme="myTooltipTheme" class="guiIconDimensions" alt="More Info">
+							<span id="tooltipContent_MinValidBatchSize" class="tooltiptext">Min Corrections Batch Size: <br><br>Enter a minimum batch size acceptable as a usable batch (usually 5).</span>
+						</span>
+					</div>
+				</div>
+				<div class="marginTop10px" data-bind="visible: $root.selectedCorrection().startsWith('RBN_')||$root.selectedCorrection().startsWith('EBN_')">
+					<div class="marginLeft10px">Log Transform Data (Second Dataset):
+						<div class="marginLeft10px"> 
+							<input type="checkbox" data-bind="checked: $root.filterLogTransformFlag2" />
+							<div class="tooltip inlineblock">
+								<img id="tooltipImage_LogTransform2" title="Second Dataset" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
+								<div id="tooltipContent_LogTransform2" class="tooltiptext">Log Transform Data:<br><br>
+									Log transform data using .1 percentile, after removing zeros and NAs, to add before logging.</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="marginTop10px" data-bind="visible: $root.selectedCorrection().startsWith('RBN_')">
+					<strong>RBN Arguments:</strong>
+					<div>
+						<table>
+							<tbody>
+								<tr>
+									<td>RBN Invariant/Variant Data:</td>
+									<td>
+										<input type="checkbox" id="RBNVariantInvariant" data-bind="checked: $root.selectedUseFirstAsInvariant"> If checked, use first dataset as invariant. Otherwise, use second.
+										<img id="tooltipImage_RBNVariantInvariant" title="RBN Invariant/Variant Dataset" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
+										<span id="tooltipContent_RBNVariantInvariant" class="tooltiptext">RBN Invariant Dataset:<br><br>
+											RBN Invariant Dataset Description here.</span>
+									</td>
+								</tr>
+								<tr>
+									<td>RBN Invariant Id:</td>
+									<td>
+										<input data-bind="value: $root.selectedRBN_InvariantId" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_]{1,16}" />
+										<img id="tooltipImage_RBNInvariantId" title="RBN Invariant Id" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
+										<span id="tooltipContent_RBNInvariantId" class="tooltiptext">RBN Invariant Id:<br><br>
+											RBN Invariant Id Description here.</span>
+									</td>
+								</tr>
+								<tr>
+									<td>RBN Variant Id:</td>
+									<td>
+										<input data-bind="value: $root.selectedRBN_VariantId" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_]{1,16}" />
+										<img id="tooltipImage_RBNVariantId" title="RBN Variant Id" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
+										<span id="tooltipContent_RBNVariantId" class="tooltiptext">RBN Variant Id:<br><br>
+											RBN Variant Id Description here.</span>
+									</td>
+								</tr>
+								<tr>
+									<td>RBN Matched:</td>
+									<td>
+										<input type="checkbox" data-bind="checked: $root.selectedRBN_Matched"/>
+										<img id="tooltipImage_Matched" title="RBN Matched" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
+										<span id="tooltipContent_Matched" class="tooltiptext">RBN Matched:<br><br>
+											RBN Matched Description here.</span>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+				<div class="marginTop10px" data-bind="visible: 'RBN_Pseudoreps' === $root.selectedCorrection()">
+					<strong>RBN Pseudoreplicants Arguments:</strong>
+					<table>
+						<tr>
+							<td>
+								<span>Select Multiple Invariant Pseudoreplicates from </span><span data-bind="text: $root.sampleidBatchType"></span>
+								<div class="mdaRounded">
+									<span class="textItalic" data-bind="visible: undefined === $root.selectedRBN_InvariantReps()">Please select at least one RBN Pseudoreplicate.</span>
+									<select  size="25" multiple="true" 
+											 data-bind="options: $root.computedSampleListInvariant, selectedOptions: $root.selectedRBN_InvariantReps"></select>
+								</div>
+							</td>
+							<td>
+								<span>Select Multiple Variant Pseudoreplicates from </span><span data-bind="text: $root.sampleidBatchType"></span>
+								<div class="mdaRounded">
+									<span class="textItalic" data-bind="visible: undefined === $root.selectedRBN_InvariantReps()">Please select a Batch Type above, and choose at least one RBN Invariant Pseudoreplicate.</span>
+									<select  size="25" multiple="true" 
+											 data-bind="options: $root.computedSampleListVariant, selectedOptions: $root.selectedRBN_VariantReps"></select>
+								</div>
+							</td>
+						</tr>
+					</table>
+				</div>
+				<div class="marginTop10px" data-bind="visible: $root.selectedCorrection().startsWith('EBN_')">
+					TODO add RBN support here 
+					<strong>EBN Plus Arguments:</strong>
+					<table>
+						<tr>
+							<td>EBNPlus Group Id 1:</td>
+							<td>
+								<input data-bind="value: $root.selectedEBNPlus_GroupId1" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_]{1,16}" />
+								<img id="tooltipImage_EBNPlusGroupId1" title="EBNPlus Group Id 1" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
+								<span id="tooltipContent_EBNPlusGroupId1" class="tooltiptext">EBNPlus Group Id 1:<br><br>
+									EBNPlus Group Id 1 Description here.</span>
+							</td>
+						</tr>
+						<tr>
+							<td>EBNPlus Group Id 2:</td>
+							<td>
+								<input data-bind="value: $root.selectedEBNPlus_GroupId2" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_]{1,16}" />
+								<img id="tooltipImage_EBNPlusGroupId2" title="EBNPlus Group Id 2" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
+								<span id="tooltipContent_EBNPlusGroupId2" class="tooltiptext">EBNPlus Group Id 2:<br><br>
+									EBNPlus Group Id 2 Description here.</span>
+							</td>
+						</tr>
+						<tr>
+							<td>EBNPlus Random Number Seed:</td>
+							<td>
+								<input data-bind="value: $root.selectedEBNPlus_Seed" type="number" class="largeInputAndSelect"/>
+								<img id="tooltipImage_EBNPlusSeed" title="EBNPlus Seed" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
+								<span id="tooltipContent_EBNPlusSeed" class="tooltiptext">EBNPlus Seed:<br><br>
+									EBNPlus Seed Description here.</span>
+							</td>
+						</tr>
+						<tr>
+							<td>EBNPlus Min Samples:</td>
+							<td>
+								<input data-bind="value: $root.selectedEBNPlus_MinSamples" type="number" class="largeInputAndSelect"/>
+								<img id="tooltipImage_EBNPlusMinSamples" title="EBNPlus Minimum Samples" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
+								<span id="tooltipContent_EBNPlusMinSamples" class="tooltiptext">EBNPlus Seed:<br><br>
+									EBNPlus Minimum Samples Description here.</span>
+							</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+			<!-- *************************************************************** -->
+			<!-- **** Step 5: PCA/DSC ****************************************** -->
+			<!-- *************************************************************** -->
+			<div class="roundedBox">
+				<strong>Step 5: Select PCA-Plus/DSC Arguments</strong>
+				<div style="float: right;">
+					<button data-bind="click: function(data, event) { $root.resetDefaultStep5(); }" class="buttons">Reset Defaults</button>
+				</div>
+				<div>
+					<table class="mbatchconfigInputTable">
+						<tr>
+							<td style="text-align: left;">
+								Number of DSC Permutations:
+							</td>
+							<td> 
+								<input class="smallInputAndSelect" type="number" min="500" data-bind="value: $root.selectedDSCPermutations, attr: {max: $root.maxDscPermutations}" />
+								<span class="tooltip">
+									<img id="tooltipImage_DSCPerms" title="Number of DSC Permutations" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
+									<span id="tooltipContent_DSCPerms" class="tooltiptext">Number of DSC Permutations:<br><br>
+										Permutations performed to calculate the DSC and associated p-values. 
+										Use a minimum of 500 for testing.
+										We recommend no less than 2000 for valid results.</span>
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td style="text-align: left;">
+								Number of DSC Threads (1-<span data-bind="text: $root.maxDscThreads"></span>):
+							</td>
+							<td>
+								<input class="smallInputAndSelect" type="number" min="1" data-bind="value: $root.selectedDSCThreads, attr: { max: $root.maxDscThreads }" />
+								<span class="tooltip">
+									<img id="tooltipImage_DSCThreads" title="Number of DSC Threads" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
+									<span id="tooltipContent_DSCThreads" class="tooltiptext">Number of DSC Threads:<br><br>
+										Number of threads (usually equal to the desired number of cores) used to perform DSC calculations. 
+										Generally, use the default value.</span>
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td style="text-align: left;">
+								Minimum DSC Batch Size:
+							</td>
+							<td>
+								<input class="smallInputAndSelect" type="number" min="0" data-bind="value: $root.selectedDSCMinBatchSize" />
+								<span class="tooltip">
+									<img id="tooltipImage_MinDSCBatchSize" title="Minimum DSC Batch Size" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
+									<span id="tooltipContent_MinDSCBatchSize"  class="tooltiptext">Minimum DSC Batch Size:<br><br>
+										Enter a minimum batch size acceptable as a usable batch (depends on correction algorithm).</span>
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td style="text-align: left;">
+								DSC Random Number Seed:
+							</td>
+							<td>
+								<input class="smallInputAndSelect" type="number" min="0" data-bind="value: $root.selectedDSCSeed" />
+								<span class="tooltip">
+									<img id="tooltipImage_DSCRandNumSeed" title="DSC Random Number Seed" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
+									<span id="tooltipContent_DSCRandNumSeed" class="tooltiptext">DSC Random Number Seed:<br><br>
+										Random number seed used in permutations and necessary for reproducible results.</span>
+								</span>
+							</td>
+						</tr>
+						<tr>
+							<td style="text-align: left;">
+								Maximum Number of Features:
+							</td>
+							<td>
+								<input class="smallInputAndSelect" type="number" min="1000" data-bind="value: $root.selectedDSCMaxGeneCount, attr: { max: $root.maxDscGeneCount }" />
+								<span class="tooltip">
+									<img id="tooltipImage_MaxNumFeatures1" title="Maximum Number of Features" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
+									<span id="tooltipContent_MaxNumFeatures1"  class="tooltiptext">Maximum Number of Features (DSC):<br><br>
+										Maximum number of features (such as, genes or probes) for DSC computations. 
+										Size is reduced based on using IQR (interquartile range) as a measurement of variant, 
+										with the assumption that batch effects are more likely to be found where there is large variation. 
+										Minimum recommended value is 1000. 
+										Maximum recommended value depends on your setup.</span>
+								</span>
+							</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+			<!-- *************************************************************** -->
+			<!-- **** Step 6: Boxplot ****************************************** -->
+			<!-- *************************************************************** -->
+			<div class="roundedBox">
+				<strong>Step 6: Select Boxplot Arguments</strong>
+				<div style="float: right;">
+					<button data-bind="click: function(data, event) { $root.resetDefaultStep6(); }" class="buttons">Reset Defaults</button>
+				</div>
+				<div class="marginLeft10px">
+					Max Number of Features:
+					<input class="smallInputAndSelect" type="number" data-bind="value: $root.selectedBoxplotMaxGeneCount, attr: { max: $root.maxBoxplotGeneCount, min: $root.minBoxplotGeneCount }" />
+					<span class="tooltip">
+						<img id="tooltipImage_Boxplot" title="Max Number of Features" data-theme="myTooltipTheme" src="images/Tooltip_icon.png"  class="guiIconDimensions" alt="More Info">
+						<span id="tooltipContent_Boxplot" class="tooltiptext">Max Number of Features (Boxplot):<br><br>
+							Maximum number of features (such as, genes or probes) for DSC computations. Size is reduced based on using IQR (interquartile range) 
+							as a measurement of variant, with the assumption that batch effects are more likely to be found where there is large variation. 
+							Minimum and maximum values are system dependent.
+							If 0 is allowed, it indicates no filtering.</span>
+					</span>
+				</div>
+			</div>
+			<!-- *************************************************************** -->
+			<!-- **** Step 7: NGCHM ******************************************** -->
+			<!-- *************************************************************** -->
+			<div class="roundedBox">
+				<strong>Step 7: Select NGCHM Arguments</strong>
+				<div style="float: right;">
+					<button data-bind="click: function(data, event) { $root.resetDefaultStep7(); }" class="buttons">Reset Defaults</button>
+				</div>
+				<div class="marginLeft10px">
+					Perform NGCHM creation:
+					<input class="smallInputAndSelect" type="checkbox" data-bind="checked: $root.selectedNgchmFlag" />
+					<span class="tooltip">
+						<img id="tooltipImage_NGCHMCreation" title="Create NGCHM" data-theme="myTooltipTheme" src="images/Tooltip_icon.png"  class="guiIconDimensions" alt="More Info">
+						<span id="tooltipContent_NGCHMCreation" class="tooltiptext">
+							Create NGCHM:<br><br>
+							Create an NGCHM using the default feature order (no clustering).
+						</span>
+					</span>
+				</div>
+				<div class="marginLeft10px">
+					NGCHM Link-Out Row Type:
+					<input data-bind="value: $root.ngchmRowType" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_|.]*" />
+					<span class="tooltip">
+						<img id="tooltipImage_NGCHMRowType" title="NGCHM Link-Out Row Type" data-theme="myTooltipTheme" src="images/Tooltip_icon.png"  class="guiIconDimensions" alt="More Info">
+						<span id="tooltipContent_NGCHMRowType" class="tooltiptext">
+							NGCHM Link-Out Row Type:<br><br>
+							A single link-out type or a dot-pipe-dot delimited list of link-out types for features.
+							bio.metabolite.MW.name.|.bio.metabolite.refmet.|.bio.compound.pubchem.|.bio.metabolite.MW.regno.|.bio.metabolite.hmdb.|.bio.compound.kegg.|.bio.compound.chebi.|.bio.compound.metacyc
+						</span>
+					</span>
+				</div>
+				<div class="marginLeft10px">
+					NGCHM Link-Out Column Type:
+					<input data-bind="value: $root.ngchmColumnType" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_|.]*" />
+					<span class="tooltip">
+						<img id="tooltipImage_NGCHMColType" title="NGCHM Link-Out Row Type" data-theme="myTooltipTheme" src="images/Tooltip_icon.png"  class="guiIconDimensions" alt="More Info">
+						<span id="tooltipContent_NGCHMColType" class="tooltiptext">
+							NGCHM Link-Out Column Type:<br><br>
+							A single link-out type or a dot-pipe-dot delimited list of link-out types for samples.
+							bio.metabolite.MW.name
+						</span>
+					</span>
+				</div>
+			</div>
+			<!-- *************************************************************** -->
+			<!-- ****  ******************************************** -->
+			<!-- *************************************************************** -->
+		</div>
+		<div class="roundedBox">
+			<!-- appview.isValid checks that all elements with validation are valid -->
+			<button class="buttons" id="doMBatchRunButton" data-bind="visible: appview.isValid(), click: function(data, event) { $root.doMBatchRun(); }" >Do MBatch Run</button>
+			<button class="buttons" id="saveConfig" data-bind="click: function(data,event){ $root.ajaxMBatchConfig('write'); }">Save Configuration</button>
+			<button class="buttons" id="loadConfig" data-bind="click: function(data,event){ $root.ajaxMBatchConfig('read'); }">Load Configuration</button>
+			<button style="float: right;" class="buttons" id="resetDefault3to7" data-bind="visible: $root.batchTypesForMBatch().length>0, click: function(data,event){ $root.resetDefault3to7(); }">Reset Defaults 3-7</button>
+		</div>
+	</body>
+</html>

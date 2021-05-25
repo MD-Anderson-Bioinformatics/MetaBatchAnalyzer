@@ -1,0 +1,438 @@
+*{ font-family: Arial,sans-serif;  font-size: 14px;}
+
+body
+{
+	background: white;
+}
+
+body.wait, body.wait *
+{
+        cursor: wait !important;
+}
+
+table.mdaCollapsedTable
+{
+	border-collapse: separate;
+	border-spacing: 0 2px;
+	width: 100%;
+}
+
+table.mdaCollapsedTable>thead>tr
+{
+	text-align: left;
+	border: 1px solid black;
+	border-radius: 6px;
+	color: black;
+	height: 25px;
+}
+
+table.mdaCollapsedTable>tbody>tr>td
+{
+	padding: 5px;
+	text-align: center;
+	color: black;
+}
+
+table.mdaCollapsedTable>thead>tr
+{
+	text-align: left;
+	white-space: nowrap;
+	color: black;
+}
+
+table.autoWidth
+{
+    width: auto;
+}
+
+table.userDataTooltipTable 
+{
+    border: 1px solid black;
+    border-radius: 6px;
+    border-spacing: 5px 2px;
+}
+
+.mdaRounded
+{
+	border: 1px solid black;
+	border-radius: 6px;
+	background: #e6e6e6;
+	color: black;
+	padding: 20px;
+}
+
+.mdaBlue
+{
+	background: #AFA;
+}
+
+select
+{
+	/*margin: 0px 0px 0px 0px;*/
+	border-radius: 6px;
+	border: 1px solid black; 
+}
+
+input
+{
+    border: 1px solid black;
+}
+
+.mdaServiceHeader
+{
+	z-index: -1;
+	overflow: hidden;
+	background-image: url('banner.png');
+}
+
+.mdaServiceHeaderLogo
+{
+	vertical-align:middle;
+}
+
+.mdaServiceHeaderTitle
+{
+	color: #403333;
+	font-weight: bold;
+	font-size: 18pt;
+	padding-left: 40px;
+}
+
+ .roundedBox
+ {
+	background: #b7d6fb;
+	margin: 10px 10px 10px 10px;
+	border: 2px solid #000000;
+	border-radius: 10px;
+	padding: 10px;
+	min-width: 600px;
+ }
+ 
+ .buttons
+ {
+	border: none;
+	border-radius: 5px;
+	padding: 3px 9px;
+	color: #ffffff;
+	font: normal 500 16px/1 "Calibri", sans-serif;
+	text-align: center;
+	text-shadow: 1px 1px #000000;
+	font-size: 18px;
+	margin: 2px;
+	display: inline-block;
+	text-decoration: none;
+	background: #3d85c6;
+	background: -webkit-linear-gradient(#3d85c6, #073763);
+	background: linear-gradient(#3d85c6, #073763);
+	white-space: nowrap;
+}
+
+.right-buttons
+{
+	text-align: right;
+}
+
+.buttons:hover
+{
+    background: #2d6699;
+    background: -webkit-linear-gradient(#2d6699, #062c4f);
+    background: linear-gradient(#2d6699, #062c4f);
+}
+
+.buttons:active 
+{
+	background: #031f38;
+	background: -webkit-linear-gradient(#031f38, #1d4263);
+	background: linear-gradient(#031f38, #1d4263);
+}
+
+.buttons:disabled
+{
+	background: #afafaf;
+    background: -webkit-linear-gradient(#afafaf, #6b6b6b);
+    background: linear-gradient(#afafaf, #6b6b6b);
+}
+
+.buttons .homeButton
+{
+	margin-right: 10px;
+}
+
+.inlineblock 
+{
+	display: inline-block;
+}
+
+.textItalic
+{
+        font-style: italic;
+}
+
+.textTitles
+{
+        font-size: 14px;
+        font-weight: bold;
+}
+
+.spinner 
+{
+	width: 8px;
+	height: 8px;
+	border: 5px solid #A9A9A9;
+	border-top: 5px solid #000099;
+	border-radius: 100%;
+	display: block;
+	display: inline-block;
+	-webkit-animation: spin 1.5s infinite linear;
+	-moz-animation: spin 1.5s infinite linear;
+	animation: spin 1.5s infinite linear;
+}
+
+@-moz-keyframes spin 
+{
+        from { -moz-transform: rotate(0deg); }
+        to { -moz-transform: rotate(360deg); }
+}
+
+@-webkit-keyframes spin 
+{
+        from { -webkit-transform: rotate(0deg); }
+        to { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin 
+{
+	from { transform:rotate(0deg);}
+	to {transform: rotate(360deg);}
+}
+
+/*
+// These two classes are no longer neccessary; however, I've kept them in
+// as it may be nice to have a backup tooltip activator in case Tippy.js fails.
+// The structure of the CSS tooltips is almost entirely unaffected, and they can still work
+.tooltip
+{
+	position: relative;
+}
+.tooltiptext 
+{
+	visibility: hidden;
+	top: auto; left: auto; right: auto; bottom: auto;
+        position: absolute;
+        display: block;
+	z-index: 1;
+	visibility: hidden;
+	opacity: 0;
+	width: 300px;
+	background-color: #f3ea72;
+	color: black;
+	text-align: left;
+	border: 5px double black;
+	border-radius: 6px;
+	transition: opacity .25s, visibilty .25s;
+	padding: 6px;
+}
+.tooltip:hover .tooltiptext 
+{
+	visibility: visible;
+	opacity: 1;
+        position: absolute;
+}
+*/
+
+.tooltiptext 
+{
+	display: none;
+}
+
+.tippy-tooltip.myTooltipTheme-theme 
+{
+	background-color: #f3ea72 !important;
+	color: black !important;
+	text-align: left !important;
+	border: 5px double black !important;
+	border-radius: 6px !important;
+	width: 300px !important; 
+}
+
+.tippy-tooltip.myTooltipTheme-theme [x-circle] 
+{
+	background-color: #f3ea72 !important;
+}
+
+.tippy-tooltip.tooltipCSS-theme
+{
+    position: absolute;
+    display: block;
+	z-index: 1;
+	/*visibility: hidden;
+	transition: opacity .25s, visibilty .25s;
+	opacity: 0;*/
+	width: 300px;
+	background-color: #f3ea72;
+	color: black;
+	text-align: left;
+	border: 5px double black;
+	border-radius: 6px;
+	padding: 6px;
+}
+
+.tippy-tooltip.tooltipCSSTest-theme
+{
+    background-color: red;
+}
+
+img.guiIconDimensions 
+{
+	height: 15px;
+	width: 15px;
+}
+
+table.mbatchconfigInputTable
+{
+    border-spacing: 10px 0px;
+}
+
+table.mbatchconfigInputTable>tr>td
+{
+    text-align: left;
+}
+
+.smallInputAndSelect
+{
+    width: 125px;
+}
+
+.largeInputAndSelect
+{
+    width: 315px;
+}
+.veryWideInputAndSelect
+{
+    width: 730px;
+}
+
+.tail_scroll {
+	margin: 5px;
+	border: 1px solid blue;
+	max-height: 200px;
+	width: 80%;
+	white-space: nowrap;
+	overflow-y: auto;
+	overflow-x: auto;
+}
+
+.marginTop10px
+{
+    margin-top: 10px;
+}
+
+.marginLeft10px
+{
+    margin-left: 10px;
+}
+
+.exclusionsBox
+{
+    width: 50%;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.beierror
+{
+    background: pink;
+    border: 1px solid red;
+    color: red;
+    z-index: 1;
+}
+
+.largeTableBoxes
+{
+    height: auto;
+    max-height: 300px; 
+    overflow-y: auto; 
+    display: block;
+}
+
+.GSselect
+{}
+
+.GSSelect option
+{}
+
+.gdcCheckAgreementModal
+{
+    position: fixed;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,.45);
+}
+
+div.modalContent
+{
+    background: white;
+    margin: 15% auto;
+}
+
+.filterBox
+{
+    border: 1px solid black;
+    border-radius: 6px;
+    height: 120px;
+    overflow-y: auto;
+}
+
+.doNotWrap
+{
+	white-space: nowrap;
+}
+
+.jobInfoTemplBox
+{
+/*    The actual template instantation*/
+	display: inline-block;
+}
+
+.jobInfoShowHideContainer
+{
+/*    The container of all jobInfo contents inside the template*/
+	/*    TODO: maybe percentage width/height*/
+	height: 15px;
+	width: 15px;
+	border: 1px solid black;
+	position: relative;
+	display: inline-block;
+}
+
+.jobInfoShowHide
+{
+/*    The show/hide activator "button" for the jobInfo window*/
+	width: 25%;
+	height: 0;
+	padding-left:25%;
+	padding-bottom: 25%;
+	overflow: hidden;
+}
+
+.jobInfoShowHide div
+{
+/*    The traingular element in the show/hide "button"*/
+    	width: 0;
+	height: 0;
+	border-left: 50px solid transparent;
+	border-right: 50px solid transparent;
+	border-bottom: 100px solid red;
+}
+
+.jobInfoContentBox
+{
+/*    The showable/hidable box of the job's information*/
+	position: absolute;
+	height: 100px;
+	width: 100px;
+	z-index: 99;
+	background-color: white;
+	border: 1px solid black;
+}

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="3.1" xmlns="http://xmlns.jcp.org/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd">
+    <session-config>
+        <session-timeout>
+            30
+        </session-timeout>
+    </session-config>
+    <security-constraint>
+        <display-name>ConstraintForLDAP</display-name>
+        <web-resource-collection>
+            <web-resource-name>RedirectLoginPage</web-resource-name>
+            <description>RedirectLoginPage</description>
+            <url-pattern>/AuthUpdate</url-pattern>
+        </web-resource-collection>
+        <auth-constraint>
+            <description>login</description>
+            <role-name>*</role-name>
+        </auth-constraint>
+    </security-constraint>
+    <login-config>
+        <auth-method>FORM</auth-method>
+        <realm-name>ConstraintForLDAP</realm-name>
+        <form-login-config>
+            <form-login-page>/login.html</form-login-page>
+            <form-error-page>/login.html?failed=true</form-error-page>
+        </form-login-config>
+    </login-config>
+    <security-role>
+        <description>a user</description>
+        <role-name>*</role-name>
+    </security-role>
+</web-app>
