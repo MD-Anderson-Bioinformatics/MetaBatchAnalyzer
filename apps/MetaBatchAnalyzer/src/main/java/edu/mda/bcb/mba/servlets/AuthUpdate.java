@@ -52,47 +52,56 @@ public class AuthUpdate extends HttpServlet
 		// TODO: replace synchronized if needed to speed up login process
 		try
 		{
-			// *******************************************************************
-			// Update User List and Role Information
-			log("request.getRemoteUser() = " + request.getRemoteUser());
-			String userName = getUserName(request);
-			if (null==userName)
+			try
 			{
-				log("nobody logged in");
-			}
-			else
-			{
-				Properties props = new Properties();
-				if (new File(MBAUtils.M_PROPS, "user.properties").exists())
+				// *******************************************************************
+				// Update User List and Role Information
+				log("request.getRemoteUser() = " + request.getRemoteUser());
+				String userName = getUserName(request);
+				if (null==userName)
 				{
-					try (FileInputStream is = new FileInputStream(new File(MBAUtils.M_PROPS, "user.properties")))
+					log("nobody logged in");
+				}
+				else
+				{
+					Properties props = new Properties();
+					if (new File(MBAUtils.M_PROPS, "user.properties").exists())
 					{
-						props.loadFromXML(is);
+						try (FileInputStream is = new FileInputStream(new File(MBAUtils.M_PROPS, "user.properties")))
+						{
+							props.loadFromXML(is);
+						}
 					}
+					props.setProperty(userName, getUserRoleString(request));
+					try (FileOutputStream os = new FileOutputStream(new File(MBAUtils.M_PROPS, "user.properties")))
+					{
+						props.storeToXML(os, "user properties");
+					}
+					log("AuthUpdate::processRequest updateUserAndRoleData");
+					UserAndRoleData.updateUserAndRoleData(props);
 				}
-				props.setProperty(userName, getUserRoleString(request));
-				try (FileOutputStream os = new FileOutputStream(new File(MBAUtils.M_PROPS, "user.properties")))
-				{
-					props.storeToXML(os, "user properties");
-				}
-				log("AuthUpdate::processRequest updateUserAndRoleData");
-				UserAndRoleData.updateUserAndRoleData(props);
 			}
+			catch (Exception exp)
+			{
+				log("AuthUpdate::processRequest failed", exp);
+			}
+			// *******************************************************************
+			// redirect user to main index
+			String url = request.getHeader("referer");
+			log("AuthOut referer=" + url);
+			if ((null==url)||("".equals(url)))
+			{
+				url = "/MBA/MBA/index.html";
+			}
+			String urlWithSessionID = response.encodeRedirectURL(url);
+			response.sendRedirect( urlWithSessionID );
 		}
-		catch (Exception exp)
+		catch(Exception exp)
 		{
 			log("AuthUpdate::processRequest failed", exp);
+			response.setStatus(400);
+			response.sendError(400);
 		}
-		// *******************************************************************
-		// redirect user to main index
-		String url = request.getHeader("referer");
-		log("AuthOut referer=" + url);
-		if ((null==url)||("".equals(url)))
-		{
-			url = "/MBA/MBA/index.html";
-		}
-		String urlWithSessionID = response.encodeRedirectURL(url);
-		response.sendRedirect( urlWithSessionID );
 	}
 	
 	static public String getUserName(HttpServletRequest request)

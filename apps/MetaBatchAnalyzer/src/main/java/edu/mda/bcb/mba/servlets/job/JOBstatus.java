@@ -37,6 +37,7 @@ public class JOBstatus extends MBAServletMixin
 		log("version = " + edu.mda.bcb.mba.utils.MBAUtils.M_VERSION);
 		String jobId = request.getParameter("jobId");
 		log("passed in jobId is " + jobId);
+		JobStatus.checkJobId(jobId);
 		theBuffer.append(JobStatus.getResponseString(this, jobId, /*includeTail=*/ true));
 	}
 }

@@ -40,6 +40,7 @@ public class JOBdelete extends MBAServletMixin
 	{
 		String jobId = request.getParameter("jobId");
 		log("passed in jobId is " + jobId);
+		JobStatus.checkJobId(jobId);
 		if ((jobId!=null)&&!("".equals(jobId)))
 		{
 			File jobDir = new File(MBAUtils.M_OUTPUT, jobId);

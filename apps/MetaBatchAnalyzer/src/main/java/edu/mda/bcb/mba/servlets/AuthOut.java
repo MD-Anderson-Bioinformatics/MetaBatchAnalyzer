@@ -42,24 +42,33 @@ public class AuthOut extends HttpServlet
 	{
 		try
 		{
+			try
+			{
+				// *******************************************************************
+				// logout user
+				request.logout();
+			}
+			catch (Exception exp)
+			{
+				log("AuthOut::processRequest logout", exp);
+			}
 			// *******************************************************************
-			// logout user
-			request.logout();
+			// redirect user to main index
+			String url = request.getHeader("referer");
+			log("AuthOut referer=" + url);
+			if ((null==url)||("".equals(url)))
+			{
+				url = "/MBA/MBA/index.html";
+			}
+			String urlWithSessionID = response.encodeRedirectURL(url);
+			response.sendRedirect( urlWithSessionID );
 		}
-		catch (Exception exp)
+		catch(Exception exp)
 		{
 			log("AuthOut::processRequest failed", exp);
+			response.setStatus(400);
+			response.sendError(400);
 		}
-		// *******************************************************************
-		// redirect user to main index
-		String url = request.getHeader("referer");
-		log("AuthOut referer=" + url);
-		if ((null==url)||("".equals(url)))
-		{
-			url = "/MBA/MBA/index.html";
-		}
-		String urlWithSessionID = response.encodeRedirectURL(url);
-		response.sendRedirect( urlWithSessionID );
 	}
 
 	// <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">

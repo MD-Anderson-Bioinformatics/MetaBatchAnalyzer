@@ -10,6 +10,7 @@
 // MD Anderson Cancer Center Bioinformatics at MDA <https://www.mdanderson.org/research/departments-labs-institutes/departments-divisions/bioinformatics-and-computational-biology.html>
 package edu.mda.bcb.mba.servlets;
 
+import edu.mda.bcb.mba.status.JobStatus;
 import edu.mda.bcb.mba.utils.MBAUtils;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -58,7 +59,9 @@ public class UploadLinkMap extends MBAServletMixin
 	@Override
 	protected void internalProcess(HttpServletRequest request, StringBuffer theBuffer) throws Exception
 	{
+		// reutnr to user handled in parent
 		String jobId = request.getParameter("jobId");
+		JobStatus.checkJobId(jobId);
 		String isAlternate = request.getParameter("isAlternate");
 		boolean isAlternateP = isAlternate.equals("YES");
 		File jobDir = new File(MBAUtils.M_OUTPUT, jobId);
@@ -118,15 +121,15 @@ public class UploadLinkMap extends MBAServletMixin
 			message = "You either did not specify a file to upload or are trying to upload a file to a protected or nonexistent location. "
 					+ fne.getMessage();
 			theServlet.log("Problems during file upload. Error: " + fne.getMessage(), fne);
-			//response.setStatus(500);
-			//response.sendError(500, exp.getMessage());
+			//response.setStatus(400);
+			//response.sendError(400, exp.getMessage());
 		}
 		catch (Exception exp)
 		{
 			message = exp.getMessage();
 			theServlet.log("Problems during file upload. Error: " + exp.getMessage(), exp);
-			//response.setStatus(500);
-			//response.sendError(500, exp.getMessage());
+			//response.setStatus(400);
+			//response.sendError(400, exp.getMessage());
 		}
 		finally
 		{

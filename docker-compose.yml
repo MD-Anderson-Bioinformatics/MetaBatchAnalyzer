@@ -1,7 +1,7 @@
 # this is the docker-compose version
 version: '3.0'
 
-# file version 2021-05-17-1700
+# file version 2021-08-13-1100
 
 
 networks:
@@ -23,7 +23,7 @@ services:
             context: .
             dockerfile: Dockerfile
         container_name: mbaMBA_cont_hub
-        image: mdabcb/mba_mba_image:2021-05-17-1700
+        image: mdabcb/mba_mba_image:2021-08-13-1100
         volumes:
             # external:internal
             # file with properties and job list for this installation
@@ -37,9 +37,8 @@ services:
             # SMW paths for Metabolomics Workbench DAta
             - /MBA/MW_CONFIG:/SMW/MW_CACHE:ro
             - /MBA/MW_ZIP:/SMW/MW_ZIP
-            # read-only file to set time and timezone to same in image as on server
+            # read-only file to set time to same in image as on server
             - /etc/localtime:/etc/localtime:ro
-            - /etc/timezone:/etc/timezone:ro
         ports:
             # (outside)host port:container port(inside)
             - "8080:8080"
@@ -54,7 +53,7 @@ services:
             context: .
             dockerfile: Dockerfile
         container_name: mbatchMBA_cont_hub
-        image: mdabcb/mba_mbatch_image:2021-05-17-1700
+        image: mdabcb/mba_mbatch_image:2021-08-13-1100
         volumes:
             # directory for output from MBA, GDCDownload, and MBatch Results external:internal
             - /MBA/OUTPUT:/MBA/OUTPUT
@@ -63,16 +62,15 @@ services:
             # SMW paths for Metabolomics Workbench DAta
             - /MBA/MW_CONFIG:/SMW/MW_CACHE:ro
             - /MBA/MW_ZIP:/SMW/MW_ZIP
-            # read-only file to set time and timezone to same in image as on server
+            # read-only file to set time to same in image as on server
             - /etc/localtime:/etc/localtime:ro
-            - /etc/timezone:/etc/timezone:ro
         links:
             # links required to talk to http://mbaService:8080/
             - mbaService
     gdcService:
         container_name: gdcMBA_cont_hub
         # update :latest to desired version
-        image: mdabcb/mba_mw_image:2021-05-17-1700
+        image: mdabcb/mba_mw_image:2021-08-13-1100
         # restart this container if it crashes
         restart: always
         build:
@@ -89,9 +87,8 @@ services:
             # SMW paths for Metabolomics Workbench DAta
             - /MBA/MW_CONFIG:/SMW/MW_CACHE:ro
             - /MBA/MW_ZIP:/SMW/MW_ZIP
-            # read-only file to set time and timezone to same in image as on server
+            # read-only file to set time to same in image as on server
             - /etc/localtime:/etc/localtime:ro
-            - /etc/timezone:/etc/timezone:ro
         links:
             # links required to talk to http://mbaService:8080/
             - mbaService
@@ -106,16 +103,15 @@ services:
             dockerfile: Dockerfile
         container_name: bevMBA_cont_hub
         # update :latest to desired version
-        image: mdabcb/mba_bev_image:2021-05-17-1700
+        image: mdabcb/mba_bev_image:2021-08-13-1100
         volumes:
             # external:internal
             # directory for dap.properties
             - /MBA/PROPS:/DAPI/CONFIG:ro
             # directory for "website" output
             - /MBA/WEBSITE:/DAPI/DATA:ro
-            # read-only file to set time and timezone to same in image as on server
+            # read-only file to set time to same in image as on server
             - /etc/localtime:/etc/localtime:ro
-            - /etc/timezone:/etc/timezone:ro
         ports:
             # (outside)host port:container port(inside)
             - "8081:8080"

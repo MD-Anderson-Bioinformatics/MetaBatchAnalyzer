@@ -58,7 +58,9 @@ public class UploadManifest extends MBAServletMixin
 	@Override
 	protected void internalProcess(HttpServletRequest request, StringBuffer theBuffer) throws Exception
 	{
+		// return to user handled in parent
 		String jobId = request.getParameter("jobId");
+		JobStatus.checkJobId(jobId);
 		String isAlternate = request.getParameter("isAlternate");
 		String dataset = request.getParameter("dataset");
 		String dstype = request.getParameter("dstype");

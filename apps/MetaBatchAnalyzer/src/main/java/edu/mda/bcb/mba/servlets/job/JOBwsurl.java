@@ -14,6 +14,7 @@ package edu.mda.bcb.mba.servlets.job;
 import edu.mda.bcb.mba.utils.MBAUtils;
 import edu.mda.bcb.mba.servlets.MBAServletMixin;
 import edu.mda.bcb.mba.servlets.MBAproperties;
+import edu.mda.bcb.mba.status.JobStatus;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -42,6 +43,7 @@ public class JOBwsurl extends MBAServletMixin
 	{
 		String jobId = request.getParameter("jobId");
 		log("passed in jobId is " + jobId);
+		JobStatus.checkJobId(jobId);
 		theBuffer.append(getURL(jobId, this, request.getScheme()));
 	}
 

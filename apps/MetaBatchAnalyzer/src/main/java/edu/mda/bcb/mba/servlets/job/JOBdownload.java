@@ -12,10 +12,13 @@
 package edu.mda.bcb.mba.servlets.job;
 
 import edu.mda.bcb.mba.authorization.Authorization;
+import edu.mda.bcb.mba.status.JobStatus;
 import edu.mda.bcb.mba.utils.MBAUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import javax.servlet.ServletException;
@@ -51,6 +54,7 @@ public class JOBdownload extends HttpServlet
 		{
 			String jobId = request.getParameter("jobId");
 			log("passed in jobId is " + jobId);
+			JobStatus.checkJobId(jobId);
 			Authorization.userHasAccessException(this, request, jobId);
 			if ((jobId != null) && !("".equals(jobId)))
 			{
@@ -68,8 +72,8 @@ public class JOBdownload extends HttpServlet
 		catch (Exception exp)
 		{
 			log("JOBdownload::processRequest failed", exp);
-			response.setStatus(500);
-			response.sendError(500, exp.getMessage());
+			response.setStatus(400);
+			response.sendError(400);
 		}
 	}
 

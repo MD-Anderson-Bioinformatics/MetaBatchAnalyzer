@@ -168,6 +168,15 @@ public class JobStatus
 		return (JOB_STATUS.StringToEnum(M_JOB_STATUS.getProperty(theJob)));
 	}
 
+	static public void checkJobId(String theJobId) throws Exception
+	{
+		ArrayList<String> jobs = new ArrayList<>( Arrays.asList( JobStatus.getJobList() ));
+		if (!jobs.contains(theJobId))
+		{
+			throw new Exception("Job not found");
+		}
+	}
+	
 	synchronized static public String[] getJobList() throws IOException
 	{
 		// NOTE: This function only returns the JobId, Status entries of job.properties.

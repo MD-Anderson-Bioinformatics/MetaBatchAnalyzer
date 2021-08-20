@@ -35,6 +35,7 @@ public class AuthUser extends MBAServletMixin
 	@Override
 	protected void internalProcess(HttpServletRequest request, StringBuffer theBuffer) throws Exception
 	{
+		// return to user handled in parent class
 		theBuffer.append("{");
 		String userName = "";
 		if (null!=request.getRemoteUser())

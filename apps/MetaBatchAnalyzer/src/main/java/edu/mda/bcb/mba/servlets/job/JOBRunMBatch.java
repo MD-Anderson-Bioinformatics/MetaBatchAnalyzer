@@ -37,6 +37,7 @@ public class JOBRunMBatch extends MBAServletMixin
 	{
 		String jobId = request.getParameter("jobId");
 		log("passed in jobId is " + jobId);
+		JobStatus.checkJobId(jobId);
 		JobStatus.setJobStatus(jobId, JOB_STATUS.MBATCHCONFIG_END, request, this);
 		JobStatus.setJobStatus(jobId, JOB_STATUS.MBATCHRUN_START_WAIT, request, this);
 		theBuffer.append(jobId);

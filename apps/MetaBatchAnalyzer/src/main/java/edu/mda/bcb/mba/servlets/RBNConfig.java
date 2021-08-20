@@ -42,19 +42,28 @@ public class RBNConfig extends HttpServlet
 	protected void processRequest(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException
 	{
-		response.setContentType("text/html;charset=UTF-8");
-		try (PrintWriter out = response.getWriter())
+		try
 		{
-			/* TODO output your page here. You may use following sample code. */
-			out.println("<!DOCTYPE html>");
-			out.println("<html>");
-			out.println("<head>");
-			out.println("<title>Servlet RBNConfig</title>");			
-			out.println("</head>");
-			out.println("<body>");
-			out.println("<h1>Servlet RBNConfig at " + request.getContextPath() + "</h1>");
-			out.println("</body>");
-			out.println("</html>");
+			response.setContentType("text/html;charset=UTF-8");
+			try (PrintWriter out = response.getWriter())
+			{
+				/* TODO output your page here. You may use following sample code. */
+				out.println("<!DOCTYPE html>");
+				out.println("<html>");
+				out.println("<head>");
+				out.println("<title>Servlet RBNConfig</title>");			
+				out.println("</head>");
+				out.println("<body>");
+				out.println("<h1>Servlet RBNConfig at " + request.getContextPath() + "</h1>");
+				out.println("</body>");
+				out.println("</html>");
+			}
+		}
+		catch(Exception exp)
+		{
+			log("RBNConfig::processRequest failed", exp);
+			response.setStatus(400);
+			response.sendError(400);
 		}
 	}
 

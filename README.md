@@ -7,10 +7,6 @@
 
 MetaBatch Analyzer is an HTTP GUI interface to a MetaBatch Analyzer (MBA) Docker Compose Stack. MBA includes images for a GUI component, an MBatch processing component, a Viewer and analysis component, and a component for downloading and converting GDC data for use with MBA.
 
-The MetaBatch Analyzer works with many Metabolomics Workbench datasets. Some datasets have unresolved issues that will be addressed in future releases - such as features that have duplicate entries.
-
-For example, Analysis AN000025 has two entries for uridine and uridine_1 in the matrix. But the NGCHM link map has two uridine entries for just "uridine". In this case, if you disable generating the NGCHM, the dataset will work.
-
 ### MetaBatch Analyzer Docker Quick Start
 
 Download the docker-compose.yml file at the root of this repository. This file is setup for use on Linux.

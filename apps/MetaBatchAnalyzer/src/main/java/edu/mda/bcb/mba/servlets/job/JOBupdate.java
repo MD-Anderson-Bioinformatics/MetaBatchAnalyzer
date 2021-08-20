@@ -42,6 +42,7 @@ public class JOBupdate extends MBAServletMixin
 		String jobId = request.getParameter("jobId");
 		String status = request.getParameter("status");
 		log("passed in jobId is " + jobId);
+		JobStatus.checkJobId(jobId);
 		log("passed in status is " + status);
 		JobStatus.setJobStatus(jobId, JOB_STATUS.StringToEnum(status), request, this);
 		// GDC Download looks for job id in response

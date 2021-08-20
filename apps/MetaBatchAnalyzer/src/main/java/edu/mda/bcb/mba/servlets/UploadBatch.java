@@ -67,7 +67,9 @@ public class UploadBatch extends MBAServletMixin
 	@Override
 	protected void internalProcess(HttpServletRequest request, StringBuffer theBuffer) throws Exception
 	{
+		// return to user handled in parent
 		String jobId = request.getParameter("jobId");
+		JobStatus.checkJobId(jobId);
 		boolean keepOriginal = paramStringToBool(request.getParameter("keepOriginal"));
 		// No rectangle flag should be logically inverted
 		boolean noRectangle = !paramStringToBool(request.getParameter("noRectangle"));
@@ -168,15 +170,15 @@ public class UploadBatch extends MBAServletMixin
 			message = "You either did not specify a file to upload or are trying to upload a file to a protected or nonexistent location. "
 					+ fne.getMessage();
 			theServlet.log("Problems during file upload. Error: " + fne.getMessage(), fne);
-			//response.setStatus(500);
-			//response.sendError(500, exp.getMessage());
+			//response.setStatus(400);
+			//response.sendError(400, exp.getMessage());
 		}
 		catch (Exception exp)
 		{
 			message = exp.getMessage();
 			theServlet.log("Problems during file upload. Error: " + exp.getMessage(), exp);
-			//response.setStatus(500);
-			//response.sendError(500, exp.getMessage());
+			//response.setStatus(400);
+			//response.sendError(400, exp.getMessage());
 		}
 		finally
 		{

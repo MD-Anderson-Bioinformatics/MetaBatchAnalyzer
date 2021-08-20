@@ -43,6 +43,7 @@ public class JOBMWDownload extends MBAServletMixin
 		////////////////////////////////////////////////////////////////////
 		String jobId = request.getParameter("jobId");
 		log("passed in jobId is " + jobId);
+		JobStatus.checkJobId(jobId);
 		String isAlternate = request.getParameter("isAlternate");
 		log("passed in isAlternate is " + isAlternate);
 		File jobDir = new File(MBAUtils.M_OUTPUT, jobId);

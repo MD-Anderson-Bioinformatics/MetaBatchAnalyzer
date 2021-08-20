@@ -40,6 +40,7 @@ public class JOBinfo extends MBAServletMixin
 	{
 		String jobId = request.getParameter("jobId");
 		log("passed in jobId is " + jobId);
+		JobStatus.checkJobId(jobId);
 		// Pass in user tag and update it if the value has changed
 		String newJobTag = request.getParameter("jobTag");
 		// do not modify job owner, included for updating auths

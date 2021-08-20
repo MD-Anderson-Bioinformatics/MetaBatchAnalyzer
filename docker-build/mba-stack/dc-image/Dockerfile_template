@@ -1,4 +1,4 @@
-FROM centos:centos8
+FROM almalinux:8
 
 # reminder, use {} around environmental variables, otherwise docker uses it as a literal
 

@@ -66,7 +66,9 @@ public class UploadMatrix extends MBAServletMixin
 	@Override
 	protected void internalProcess(HttpServletRequest request, StringBuffer theBuffer) throws Exception
 	{
+		// return to user handled in parent
 		String jobId = request.getParameter("jobId");
+		JobStatus.checkJobId(jobId);
 		boolean keepOriginalFlag = paramStringToBool(request.getParameter("keepOriginal"));
 		// No rectangle flag should be logically inverted
 		boolean noRectangleFlag = !paramStringToBool(request.getParameter("noRectangle"));

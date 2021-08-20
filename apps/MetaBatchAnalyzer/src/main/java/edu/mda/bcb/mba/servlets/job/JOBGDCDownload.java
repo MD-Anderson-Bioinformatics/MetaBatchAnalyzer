@@ -42,6 +42,7 @@ public class JOBGDCDownload extends MBAServletMixin
 	{
 		////////////////////////////////////////////////////////////////////
 		String jobId = request.getParameter("jobId");
+		JobStatus.checkJobId(jobId);
 		log("passed in jobId is " + jobId);
 		String isAlternate = request.getParameter("isAlternate");
 		log("passed in isAlternate is " + isAlternate);
