@@ -1,2 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Context path="/MBA/MBA"/>
+<Context path="/MBA/MBA">
+	<Manager pathname="" saveOnRestart="false" />
+</Context>

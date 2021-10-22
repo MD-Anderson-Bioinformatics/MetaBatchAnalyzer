@@ -1,7 +1,7 @@
 # this is the docker-compose version
 version: '3.0'
 
-# file version 2021-08-13-1100
+# file version 2021-10-14-0919
 
 
 networks:
@@ -23,7 +23,7 @@ services:
             context: .
             dockerfile: Dockerfile
         container_name: mbaMBA_cont_hub
-        image: mdabcb/mba_mba_image:2021-08-13-1100
+        image: mdabcb/mba_mba_image:2021-10-14-0919
         volumes:
             # external:internal
             # file with properties and job list for this installation
@@ -53,7 +53,7 @@ services:
             context: .
             dockerfile: Dockerfile
         container_name: mbatchMBA_cont_hub
-        image: mdabcb/mba_mbatch_image:2021-08-13-1100
+        image: mdabcb/mba_mbatch_image:2021-10-14-0919
         volumes:
             # directory for output from MBA, GDCDownload, and MBatch Results external:internal
             - /MBA/OUTPUT:/MBA/OUTPUT
@@ -70,7 +70,7 @@ services:
     gdcService:
         container_name: gdcMBA_cont_hub
         # update :latest to desired version
-        image: mdabcb/mba_mw_image:2021-08-13-1100
+        image: mdabcb/mba_mw_image:2021-10-14-0919
         # restart this container if it crashes
         restart: always
         build:
@@ -103,7 +103,7 @@ services:
             dockerfile: Dockerfile
         container_name: bevMBA_cont_hub
         # update :latest to desired version
-        image: mdabcb/mba_bev_image:2021-08-13-1100
+        image: mdabcb/mba_bev_image:2021-10-14-0919
         volumes:
             # external:internal
             # directory for dap.properties
