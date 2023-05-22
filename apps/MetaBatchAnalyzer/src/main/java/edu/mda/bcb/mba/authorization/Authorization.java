@@ -1,4 +1,4 @@
-// Copyright (c) 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 University of Texas MD Anderson Cancer Center
+// Copyright (c) 2011-2022 University of Texas MD Anderson Cancer Center
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
 //
@@ -14,6 +14,7 @@ package edu.mda.bcb.mba.authorization;
 import edu.mda.bcb.mba.servlets.AuthUpdate;
 import edu.mda.bcb.mba.utils.MBAUtils;
 import edu.mda.bcb.mba.servlets.MBAproperties;
+import edu.mda.bcb.mba.utils.PropertiesEsc;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -22,7 +23,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.TreeSet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -124,7 +124,7 @@ public class Authorization
 				mJobsToUsers.remove(theJobId+ ".USERS");
 				mJobsToRoles.remove(theJobId+ ".ROLES");
 				mJobsToOwner.remove(theJobId+ ".OWNER");
-				Properties props = new Properties();
+				PropertiesEsc props = new PropertiesEsc();
 				for (Entry<String, TreeSet<String>> myData : mJobsToUsers.entrySet())
 				{
 					props.setProperty(myData.getKey()+ ".USERS", treeSetToString(myData.getValue()));
@@ -170,7 +170,7 @@ public class Authorization
 				mJobsToRoles.put(theJobId, theRoles);
 				mJobsToOwner.put(theJobId, theJobOwner);
 				// add job and users to properties
-				Properties props = new Properties();
+				PropertiesEsc props = new PropertiesEsc();
 				for (Entry<String, TreeSet<String>> myData : mJobsToUsers.entrySet())
 				{
 					props.setProperty(myData.getKey()+ ".USERS", treeSetToString(myData.getValue()));
@@ -222,7 +222,7 @@ public class Authorization
 		{
 			//theServlet.log("readAuthorizationData version = " + edu.mda.bioinfo.mba.servlets.MBAUtils.M_VERSION);
 			long start = System.currentTimeMillis();
-			Properties props = new Properties();
+			PropertiesEsc props = new PropertiesEsc();
 			//authorization properties
 			try (FileInputStream is = new FileInputStream(new File(MBAUtils.M_PROPS, "auth.properties")))
 			{
@@ -232,7 +232,7 @@ public class Authorization
 			mJobsToRoles.clear();
 			mJobsToOwner.clear();
 
-			for (Entry<Object, Object> myData : props.entrySet())
+			for (Entry<String, String> myData : props.entrySet())
 			{
 				processProp(theServlet, (String)myData.getKey(), (String)myData.getValue());
 			}

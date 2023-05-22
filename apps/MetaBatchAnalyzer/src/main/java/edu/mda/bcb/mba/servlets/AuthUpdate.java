@@ -1,4 +1,4 @@
-// Copyright (c) 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 University of Texas MD Anderson Cancer Center
+// Copyright (c) 2011-2022 University of Texas MD Anderson Cancer Center
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
 //
@@ -13,12 +13,13 @@ package edu.mda.bcb.mba.servlets;
 
 import edu.mda.bcb.mba.utils.MBAUtils;
 import edu.mda.bcb.mba.authorization.UserAndRoleData;
+import edu.mda.bcb.mba.utils.PropertiesEsc;
+import edu.mda.bcb.mba.utils.ScanCheck;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.Principal;
-import java.util.Properties;
 import java.util.TreeSet;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -52,6 +53,7 @@ public class AuthUpdate extends HttpServlet
 		// TODO: replace synchronized if needed to speed up login process
 		try
 		{
+			ScanCheck.checkForSecurity(request);
 			try
 			{
 				// *******************************************************************
@@ -64,7 +66,7 @@ public class AuthUpdate extends HttpServlet
 				}
 				else
 				{
-					Properties props = new Properties();
+					PropertiesEsc props = new PropertiesEsc();
 					if (new File(MBAUtils.M_PROPS, "user.properties").exists())
 					{
 						try (FileInputStream is = new FileInputStream(new File(MBAUtils.M_PROPS, "user.properties")))

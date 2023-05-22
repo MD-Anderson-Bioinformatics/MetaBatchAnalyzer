@@ -1,4 +1,4 @@
-# MBatch Copyright (c) 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 University of Texas MD Anderson Cancer Center
+# MBatch Copyright (c) 2011-2022 University of Texas MD Anderson Cancer Center
 #
 # This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
 #
@@ -33,9 +33,10 @@ for( myStr in commandArgs() )
   }
 }
 
-successFile <- file.path("/MBA/OUTPUT", jobID, "ZIP-RESULTS", "MBATCH_SUCCESS.txt")
-completedFile <- file.path("/MBA/OUTPUT", jobID, "ZIP-RESULTS", "MBATCH_COMPLETED.txt")
-failFile <- file.path("/MBA/OUTPUT", jobID, "ZIP-RESULTS", "MBATCH_FAILED.txt")
+# update for new output paths (Added analysis directory)
+successFile <- file.path("/MBA/OUTPUT", jobID, "ZIP-RESULTS", "analysis", "MBATCH_SUCCESS.txt")
+completedFile <- file.path("/MBA/OUTPUT", jobID, "ZIP-RESULTS", "analysis", "MBATCH_COMPLETED.txt")
+failFile <- file.path("/MBA/OUTPUT", jobID, "ZIP-RESULTS", "analysis", "MBATCH_FAILED.txt")
 runStatus <- "success"
 tryCatch({
 	if (file.exists(successFile))
@@ -56,15 +57,13 @@ tryCatch({
 	  jobResponse <- GET(url=paste(mbaURL, "/MBA/MBA/JOBupdate?jobId=", jobID, "&status=MBATCHRUN_END_FAILURE", sep=""))
 	  message("runMBatchFinal::  JOBupdate response '", content(jobResponse, "text"), "'")
 	}
-}, warning = function(war){
-  message(paste("runMBatchFinal.R hit the Warning: ", war))
-  runStatus <- "warning"
-  traceback()
 }, error = function(err){
   message(paste("runMBatchFinal.R hit the error: ", err))
   runStatus <- "error"
   traceback()
 }, finally = {
+  # do not catch warnings, since then they act like errors and stop the process
+  warnings()
   cat(runStatus)
 })
 

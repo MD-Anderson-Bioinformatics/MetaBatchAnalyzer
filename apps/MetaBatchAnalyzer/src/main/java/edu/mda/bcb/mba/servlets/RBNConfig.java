@@ -1,4 +1,4 @@
-// Copyright (c) 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 University of Texas MD Anderson Cancer Center
+// Copyright (c) 2011-2022 University of Texas MD Anderson Cancer Center
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
 //
@@ -11,6 +11,7 @@
 
 package edu.mda.bcb.mba.servlets;
 
+import edu.mda.bcb.mba.utils.ScanCheck;
 import java.io.IOException;
 import java.io.PrintWriter;
 import javax.servlet.ServletException;
@@ -44,6 +45,7 @@ public class RBNConfig extends HttpServlet
 	{
 		try
 		{
+			ScanCheck.checkForSecurity(request);
 			response.setContentType("text/html;charset=UTF-8");
 			try (PrintWriter out = response.getWriter())
 			{

@@ -1,7 +1,7 @@
-# this is the docker-compose version
+# this is the docker compose version
 version: '3.0'
 
-# file version 2021-10-14-0919
+# file version 2023-05-17-1317
 
 
 networks:
@@ -23,9 +23,11 @@ services:
             context: .
             dockerfile: Dockerfile
         container_name: mbaMBA_cont_hub
-        image: mdabcb/mba_mba_image:2021-10-14-0919
+        image: mdabcb/mba_mba_image:2023-05-17-1317
         volumes:
             # external:internal
+            # external log path
+            - /MBA/LOGS/MBA:/opt/tomcat/logs
             # file with properties and job list for this installation
             - /MBA/PROPS:/MBA/PROPS
             # directory for output from MBA, GDCDownload, and MBatch Results
@@ -53,32 +55,7 @@ services:
             context: .
             dockerfile: Dockerfile
         container_name: mbatchMBA_cont_hub
-        image: mdabcb/mba_mbatch_image:2021-10-14-0919
-        volumes:
-            # directory for output from MBA, GDCDownload, and MBatch Results external:internal
-            - /MBA/OUTPUT:/MBA/OUTPUT
-            # directory for the Batch Effects Website (must be on Linux file system since links to /MBA/OUTOUT are created here)
-            - /MBA/WEBSITE:/MBA/WEBSITE
-            # SMW paths for Metabolomics Workbench DAta
-            - /MBA/MW_CONFIG:/SMW/MW_CACHE:ro
-            - /MBA/MW_ZIP:/SMW/MW_ZIP
-            # read-only file to set time to same in image as on server
-            - /etc/localtime:/etc/localtime:ro
-        links:
-            # links required to talk to http://mbaService:8080/
-            - mbaService
-    gdcService:
-        container_name: gdcMBA_cont_hub
-        # update :latest to desired version
-        image: mdabcb/mba_mw_image:2021-10-14-0919
-        # restart this container if it crashes
-        restart: always
-        build:
-            # build from sub-directory and Dockerfile
-            context: .
-            dockerfile: Dockerfile
-        networks:
-            - mba_network_hub
+        image: mdabcb/mba_mbatch_image:2023-05-17-1317
         volumes:
             # directory for output from MBA, GDCDownload, and MBatch Results external:internal
             - /MBA/OUTPUT:/MBA/OUTPUT
@@ -103,13 +80,15 @@ services:
             dockerfile: Dockerfile
         container_name: bevMBA_cont_hub
         # update :latest to desired version
-        image: mdabcb/mba_bev_image:2021-10-14-0919
+        image: mdabcb/mba_bev_image:2023-05-17-1317
         volumes:
             # external:internal
+            # external log path
+            - /MBA/LOGS/BEV:/opt/tomcat/logs
             # directory for dap.properties
-            - /MBA/PROPS:/DAPI/CONFIG:ro
+            - /MBA/PROPS:/DAPI_MOB/CONFIG:ro
             # directory for "website" output
-            - /MBA/WEBSITE:/DAPI/DATA:ro
+            - /MBA/WEBSITE:/DAPI_MOB/DATA:ro
             # read-only file to set time to same in image as on server
             - /etc/localtime:/etc/localtime:ro
         ports:

@@ -1,4 +1,4 @@
-// Copyright (c) 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 University of Texas MD Anderson Cancer Center
+// Copyright (c) 2011-2022 University of Texas MD Anderson Cancer Center
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
 //
@@ -11,10 +11,28 @@
 
 package edu.mda.bcb.mba.utils;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.List;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.Part;
+import org.apache.commons.io.FileUtils;
+import org.apache.tika.Tika;
+import org.apache.tika.exception.TikaException;
+import org.apache.tika.io.TikaInputStream;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.txt.TXTParser;
+import org.apache.tika.sax.BodyContentHandler;
+import org.xml.sax.SAXException;
 
 /**
  *
@@ -43,5 +61,55 @@ public class MBAUtils
 			Files.copy(theSource1.toPath(), destFile1.toPath());
 			Files.copy(theSource2.toPath(), destFile2.toPath());
 		}
+	}
+	
+	static public String uploadTextOnlyFile(Part thePart, String theSavePath, HttpServlet theServlet, String theSuccessString) throws FileNotFoundException, IOException, SAXException, TikaException
+	{
+		String message = "";
+		String tmpPath = theSavePath + ".tmp";
+		// upload and check file for text only
+		try(OutputStream out = new FileOutputStream(tmpPath))
+		{
+			BodyContentHandler handler = new BodyContentHandler(out);
+			TXTParser parser = new TXTParser();
+			Metadata metadata = new Metadata();
+			ParseContext context = new ParseContext();
+			try (TikaInputStream stream = TikaInputStream.get(thePart.getInputStream()))
+			{
+				parser.parse(stream, handler, metadata, context);
+				theServlet.log("File mbang uploaded to " + tmpPath);
+			}
+		}
+		String filetype = new Tika().detect(tmpPath);
+		theServlet.log("filetype = " + filetype);
+		// remove empty lines inserted by text check
+		try (BufferedReader br = new BufferedReader(new FileReader(tmpPath)))
+		{
+			boolean first = true;
+			try(BufferedWriter bw = new BufferedWriter(new FileWriter(theSavePath)))
+			{
+				theServlet.log("File mbang cleaned to " + theSavePath);
+				String line;
+				while ((line = br.readLine()) != null)
+				{
+					if (first)
+					{
+						bw.write(line);
+						first = false;
+					}
+					else
+					{
+						if (!"".equals(line))
+						{
+							bw.newLine();
+							bw.write(line);
+						}
+					}
+				}
+				FileUtils.delete(new File(tmpPath));
+				message = theSuccessString;
+			}
+		}
+		return message;
 	}
 }

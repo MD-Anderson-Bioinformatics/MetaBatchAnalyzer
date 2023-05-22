@@ -28,6 +28,13 @@ export rLogr=${baseDir}/runMBatch.rLog
 
 echo 'Invoking R BEA_VERSION_TIMESTAMP'
 
+# conda is a function, which is not propagated to bash scripts
+# need to activate this so R can use it
+echo "activate conda itself"
+source ~/conda/etc/profile.d/conda.sh
+
+# environment variables set in Dockerfile
+
 # use this instead of looping inside R, since R leaks memory really badly
 while true
 do

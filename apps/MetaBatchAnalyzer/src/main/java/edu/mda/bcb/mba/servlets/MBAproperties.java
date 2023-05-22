@@ -1,4 +1,4 @@
-// Copyright (c) 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 University of Texas MD Anderson Cancer Center
+// Copyright (c) 2011-2022 University of Texas MD Anderson Cancer Center
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
 //
@@ -12,11 +12,11 @@
 package edu.mda.bcb.mba.servlets;
 
 import edu.mda.bcb.mba.utils.MBAUtils;
+import edu.mda.bcb.mba.utils.PropertiesEsc;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.Properties;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -32,7 +32,7 @@ import javax.servlet.http.HttpServletRequest;
 public class MBAproperties extends MBAServletMixin
 {
 	static private String M_PROPERTIES_JSON = null;
-	static private Properties M_PROPERTIES = null;
+	static private PropertiesEsc M_PROPERTIES = null;
 	static private long M_TIMESTAMP = 0;
 	
 	static public String getProperty(String theProperty, HttpServlet theServlet) throws IOException
@@ -62,9 +62,9 @@ public class MBAproperties extends MBAServletMixin
 	protected void internalProcess(HttpServletRequest request, StringBuffer theBuffer) throws Exception
 	{
 		// return to user handled in parent
-		long start = System.currentTimeMillis();
+		//long start = System.currentTimeMillis();
 		theBuffer.append(getResponseString(this));
-		long finish = System.currentTimeMillis();
+		//long finish = System.currentTimeMillis();
 		//log("MBAproperties completed in " + (finish-start)/1000 + " seconds");
 	}
 
@@ -78,7 +78,7 @@ public class MBAproperties extends MBAServletMixin
 		if ((null==M_PROPERTIES_JSON)||
 			((null!=M_PROPERTIES_JSON)&&((M_TIMESTAMP-System.currentTimeMillis())>(1000*60*60))))
 		{
-			M_PROPERTIES = new Properties();
+			M_PROPERTIES = new PropertiesEsc();
 			try (FileInputStream is = new FileInputStream(new File(MBAUtils.M_PROPS, "mba.properties")))
 			{
 				M_PROPERTIES.loadFromXML(is);

@@ -1,4 +1,4 @@
-// Copyright (c) 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 University of Texas MD Anderson Cancer Center
+// Copyright (c) 2011-2022 University of Texas MD Anderson Cancer Center
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
 //
@@ -12,12 +12,10 @@ package edu.mda.bcb.mba.servlets;
 
 import edu.mda.bcb.mba.status.JobStatus;
 import edu.mda.bcb.mba.utils.MBAUtils;
+import edu.mda.bcb.mba.utils.ScanCheck;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
@@ -63,6 +61,7 @@ public class UploadLinkMap extends MBAServletMixin
 		String jobId = request.getParameter("jobId");
 		JobStatus.checkJobId(jobId);
 		String isAlternate = request.getParameter("isAlternate");
+		ScanCheck.checkForYesNo(isAlternate);
 		boolean isAlternateP = isAlternate.equals("YES");
 		File jobDir = new File(MBAUtils.M_OUTPUT, jobId);
 		File zipDataDir = new File(jobDir, "ZIP-DATA");
@@ -96,25 +95,9 @@ public class UploadLinkMap extends MBAServletMixin
 	public static String saveFileUpload(Part thePart, String theSavePath, HttpServlet theServlet)
 	{
 		String message = "";
-		OutputStream out = null;
-		InputStream filecontent = null;
 		try
 		{
-			//long size = 0;
-			//String machineName = InetAddress.getLocalHost().getHostName();
-			out = new FileOutputStream(theSavePath);
-			filecontent = thePart.getInputStream();
-
-			int read = 0;
-			final byte[] bytes = new byte[1024];
-
-			while ((read = filecontent.read(bytes)) != -1)
-			{
-				//size = size + 1024;
-				out.write(bytes, 0, read);
-			}
-			theServlet.log("File mbang uploaded to " + theSavePath);
-			message = successfulUpload;
+			message = MBAUtils.uploadTextOnlyFile(thePart, theSavePath, theServlet, successfulUpload);
 		}
 		catch (FileNotFoundException fne)
 		{
@@ -130,31 +113,6 @@ public class UploadLinkMap extends MBAServletMixin
 			theServlet.log("Problems during file upload. Error: " + exp.getMessage(), exp);
 			//response.setStatus(400);
 			//response.sendError(400, exp.getMessage());
-		}
-		finally
-		{
-			if (out != null)
-			{
-				try
-				{
-					out.close();
-				}
-				catch (Exception ignore)
-				{
-					//
-				}
-			}
-			if (filecontent != null)
-			{
-				try
-				{
-					filecontent.close();
-				}
-				catch (Exception ignore)
-				{
-					//
-				}
-			}
 		}
 		return message;
 	}

@@ -1,4 +1,4 @@
-// Copyright (c) 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 University of Texas MD Anderson Cancer Center
+// Copyright (c) 2011-2022 University of Texas MD Anderson Cancer Center
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
 //
@@ -14,6 +14,7 @@ package edu.mda.bcb.mba.servlets.job;
 import edu.mda.bcb.mba.servlets.MBAServletMixin;
 import edu.mda.bcb.mba.status.JOB_STATUS;
 import edu.mda.bcb.mba.status.JobStatus;
+import edu.mda.bcb.mba.utils.ScanCheck;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 
@@ -36,6 +37,7 @@ public class JOBRunMBatch extends MBAServletMixin
 	protected void internalProcess(HttpServletRequest request, StringBuffer theBuffer) throws Exception
 	{
 		String jobId = request.getParameter("jobId");
+		ScanCheck.checkForMetaCharacters(jobId);
 		log("passed in jobId is " + jobId);
 		JobStatus.checkJobId(jobId);
 		JobStatus.setJobStatus(jobId, JOB_STATUS.MBATCHCONFIG_END, request, this);

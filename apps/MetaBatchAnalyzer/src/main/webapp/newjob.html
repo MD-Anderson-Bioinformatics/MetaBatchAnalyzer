@@ -7,6 +7,67 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 	<head>
 		<title>MetaBatch Analyzer</title>
 		<meta charset="UTF-8">
+		<!-- Global site tag (gtag.js) - Google Analytics -->
+		<script type="text/javascript">
+			/* Google Analytics start */
+			// based on https://rankmath.com/blog/google-analytics-gdpr/
+			const cyrb53 = function(str, seed = 0)
+			{
+				let h1 = 0xdeadbeef ^ seed,
+					h2 = 0x41c6ce57 ^ seed;
+				for (let i = 0, ch; i < str.length; i++)
+				{
+					ch = str.charCodeAt(i);
+					h1 = Math.imul(h1 ^ ch, 2654435761);
+					h2 = Math.imul(h2 ^ ch, 1597334677);
+				}
+				h1 = Math.imul(h1 ^ h1 >>> 16, 2246822507) ^ Math.imul(h2 ^ h2 >>> 13, 3266489909);
+				h2 = Math.imul(h2 ^ h2 >>> 16, 2246822507) ^ Math.imul(h1 ^ h1 >>> 13, 3266489909);
+				return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+			};
+
+			const getNavigatorId = function() 
+			{
+				let notAvailable = "unknown";
+				let ua = navigator.userAgent || notAvailable;
+				let lang = window.navigator.language || window.navigator.userLanguage || window.navigator.browserLanguage || window.navigator.systemLanguage || not_available;
+				let colors = window.screen.colorDepth || notAvailable;
+				let memKey = window.navigator.deviceMemory || notAvailable;
+				let pixels = window.devicePixelRatio || notAvailable;
+				let res = [window.screen.width, window.screen.height].sort().reverse().join("x");
+				return ua + ";" + lang + ";" + colors + ";" + memKey + ";" + pixels + ";" + res;
+			};
+
+			let validityInterval = Math.round (new Date() / 1000 / 3600 / 24 / 7);
+			let clientIDSource = window.location.host + ";" + getNavigatorId() + ";" + validityInterval;
+
+			window.clientIDHashed = cyrb53(clientIDSource).toString(16);
+			(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+			(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+			m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+			})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+			ga('create', 'UA-33425717-2', 
+			{
+				'storage': 'none',
+				'clientId': clientIDHashed
+			});
+			ga('set', 'anonymizeIp', true);
+			ga('send', 'pageview');
+			/* Google Analytics end */
+
+			function sendGAEvent(theEvent, theCategory, theLabel)
+			{
+				/* Google Analytics start */
+				ga('send', 
+				{
+					hitType: 'event',
+					eventCategory: theEvent,
+					eventAction: theCategory,
+					eventLabel: theLabel
+				});
+				/* Google Analytics end */
+			};
+		</script>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<script type="text/javascript" src="jquery-1.11.1.min.js"></script>
 		<script type="text/javascript" src="knockout-3.2.0.js"></script>
@@ -96,157 +157,6 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 					}
 				});
 
-				// *************************************************************
-				// *************************************************************
-				// **** GDC Download code
-				// *************************************************************
-				// *************************************************************
-
-				self.gdcDatasetList = ko.observableArray([]);
-				self.gdcDatasetSelected = ko.observable(null);
-				/* gdcdata-start 
-				$.ajax(
-				{
-					type: "GET",
-					dataType: 'json',
-					async: false,
-					url: "GDCdatasets",
-					cache: false,
-					success: function (theJson)
-					{
-						self.gdcDatasetSelected(null);
-						self.gdcDatasetList(theJson);
-					},
-					beforeSend: function ()
-					{
-						disableInput(self);
-					},
-					complete: function ()
-					{
-						enableInput(self);
-					},
-					error: function (jqXHR, textStatus, errorThrown)
-					{
-						console.log("GDCdatasets :" + textStatus + " and " + errorThrown);
-						alert("GDCdatasets :" + textStatus + " and " + errorThrown);
-					}
-				});
-				 gdcdata-end */
-				// gdcCheckAgreement requires the user to complete a click-through Modal agreement in order to access GDC Options
-				self.gdcCheckAgreement = ko.observable(false);
-
-				// actually download files from GDC
-				self.goDownloadGDC = function (theIsAlternate)
-				{
-					$.ajax(
-					{
-						type: "GET",
-						dataType: 'text',
-						async: true,
-						url: "JOBGDCDownload",
-						cache: false,
-						data:
-						{
-							// pass Job Id and selected GDC download options
-							jobId: self.jobId(),
-							isAlternate: theIsAlternate
-							// TODO: add different stuff here
-						},
-						beforeSend: function ()
-						{
-							disableInput(self);
-						},
-						complete: function ()
-						{
-							enableInput(self);
-						},
-						success: function (theText)
-						{
-							refreshJobStatus(self, self.jobId());
-						},
-						error: function (jqXHR, textStatus, errorThrown)
-						{
-							console.log("JOBGDCDownload :" + textStatus + " and " + errorThrown);
-							alert("JOBGDCDownload :" + textStatus + " and " + errorThrown);
-						}
-					});
-				};
-				
-				// *************************************************************
-				// *************************************************************
-				// **** MW Download code
-				// *************************************************************
-				// *************************************************************
-
-				self.mwDatasetList = ko.observableArray([]);
-				self.mwDatasetSelected = ko.observable(null);
-				/* mwdata-start */
-				$.ajax(
-				{
-					type: "GET",
-					dataType: 'json',
-					async: false,
-					url: "MWdatasets",
-					cache: false,
-					success: function (theJson)
-					{
-						// Study <> Analysis <> Title
-						self.mwDatasetSelected(null);
-						self.mwDatasetList(theJson);
-					},
-					beforeSend: function ()
-					{
-						disableInput(self);
-					},
-					complete: function ()
-					{
-						enableInput(self);
-					},
-					error: function (jqXHR, textStatus, errorThrown)
-					{
-						console.log("MWdatasets :" + textStatus + " and " + errorThrown);
-						alert("MWdatasets :" + textStatus + " and " + errorThrown);
-					}
-				});
-				/* mwdata-end */
-				
-				// actually download files from MW
-				self.goDownloadMW = function (theIsAlternate)
-				{
-					$.ajax(
-					{
-						type: "GET",
-						dataType: 'text',
-						async: true,
-						url: "JOBMWDownload",
-						cache: false,
-						data:
-						{
-							// pass Job Id and selected GDC download options
-							jobId: self.jobId(),
-							isAlternate: theIsAlternate
-							// TODO: add different stuff here
-						},
-						beforeSend: function ()
-						{
-							disableInput(self);
-						},
-						complete: function ()
-						{
-							enableInput(self);
-						},
-						success: function (theText)
-						{
-							refreshJobStatus(self, self.jobId());
-						},
-						error: function (jqXHR, textStatus, errorThrown)
-						{
-							console.log("JOBMWDownload :" + textStatus + " and " + errorThrown);
-							alert("JOBMWDownload :" + textStatus + " and " + errorThrown);
-						}
-					});
-				};
-				
 				// *************************************************************
 				// *************************************************************
 				// ** Upload User Data Code
@@ -610,10 +520,8 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 			<span  data-bind="visible: ('NEWJOB_START'===$root.jobState())">
 				<strong>Step 1.a.: Specify Primary Dataset</strong>
 				<br>
-				Alternative data source,<br><a target="_blank" href="https://bioinformatics.mdanderson.org/StdMW/">Download Metabolomics Workbench Data here</a><br>Use the matrix_data.tsv, batch.tsv, and ngchm_link_map.tsv files.<br>The row_col_types.tsv file has the row and column types for the NGCHM.<br><br>
+				<!-- placeholder other link -->
 				<select class="largeInputAndSelect" data-bind="value: $root.selectedDatasetType">
-					<!-- gdcdata-start <option value="gdcdata">GDC Downloaded Data</option> gdcdata-end -->
-					<!-- mwdata-start --><option value="mwdata">Metabolomics Workbench Data</option><!-- mwdata-end -->
 					<option value="userdata">User Uploaded Data</option>
 				</select>
 			</span>State:
@@ -622,24 +530,6 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 			</span>
 			<span  data-bind="visible: ('NEWJOB_PRIMARY_DONE'===$root.jobState()) || ('NEWJOB_DONE'===$root.jobState()) || ($root.jobState().startsWith('NEWJOB_SECONDARY_'))">
 				<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Step 1.a.: Specify Primary Dataset Complete</strong>
-			</span>
-			<span  data-bind="visible: ('NEWJOB_PRIMARY_GDC_MANIFEST'===$root.jobState())">
-				<strong>&nbsp;Step 1.a.: Request GDC Download</strong>
-			</span>
-			<span  data-bind="visible: ('NEWJOB_PRIMARY_GDC_WAIT'===$root.jobState())">
-				<span class="spinner"></span><strong>&nbsp;Step 1.a.: GDC Download Queued</strong>
-			</span>
-			<span  data-bind="visible: ('NEWJOB_PRIMARY_GDCRUN_WAIT'===$root.jobState())">
-				<span class="spinner"></span><strong>&nbsp;Step 1.a.: GDC Download in Progress</strong>
-			</span>
-			<span  data-bind="visible: ('NEWJOB_PRIMARY_MW_MANIFEST'===$root.jobState())">
-				<strong>&nbsp;Step 1.a.: Request MW Download</strong>
-			</span>
-			<span  data-bind="visible: ('NEWJOB_PRIMARY_MW_WAIT'===$root.jobState())">
-				<span class="spinner"></span><strong>&nbsp;Step 1.a.: MW Download Queued</strong>
-			</span>
-			<span  data-bind="visible: ('NEWJOB_PRIMARY_MWRUN_WAIT'===$root.jobState())">
-				<span class="spinner"></span><strong>&nbsp;Step 1.a.: MW Download in Progress</strong>
 			</span>
 			<span  data-bind="visible: ('NEWJOB_PRIMARY_USER_MATRIX'===$root.jobState())">
 				<strong>&nbsp;Step 1.a.: User Data Upload in Progress</strong>
@@ -657,20 +547,12 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				<br><small>Some correction algorithms use two datasets. Use the Proceed button if you do not need a second dataset.</small>
 				<br>
 				<select class="largeInputAndSelect" data-bind="value: $root.selectedDatasetType">
-					<!-- gdcdata-start <option value="gdcdata">GDC Downloaded Data</option> gdcdata-end -->
-					<!-- mwdata-start --><option value="mwdata">Metabolomics Workbench Data</option><!-- mwdata-end -->
 					<option value="userdata">User Uploaded Data</option>
 				</select>
 				<button class="buttons" id="goToNextPageStatesetButton" data-bind="click: function(data, event) { $root.goToNextPageState(); }">Proceed without Secondary Dataset</button>				
 			</span>
-			<span  data-bind="visible: ('NEWJOB_Secondary_GDC_MANIFEST'===$root.jobState())">
-				<strong>&nbsp;Step 1.b.: Request GDC Download</strong>
-			</span>
 			<span  data-bind="visible: (('NEWJOB_SECONDARY_DONE'===$root.jobState()) || ('NEWJOB_DONE'===$root.jobState()))">
 				<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Step 1.b.: Specify Secondary Dataset Complete</strong>
-			</span>
-			<span  data-bind="visible: ('NEWJOB_SECONDARY_GDC_WAIT'===$root.jobState())">
-				<span class="spinner"></span><strong>&nbsp;Step 1.b.: GDC Download in Progress</strong>
 			</span>
 			<span  data-bind="visible: ('NEWJOB_SECONDARY_USER_MATRIX'===$root.jobState())">
 				<strong>&nbsp;Step 1.b.: User Data Upload in Progress</strong>
@@ -686,123 +568,6 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 			<select class="tail_scroll" id="tail_scroll" data-bind="options: $root.jobTail, value: $root.jobTail()[$root.jobTail().length-1]" size='10' multiple='false'></select>    
 		</div>
 		<!-- **** END: Tail ************************************* -->
-		<!-- **** START: select GDC Downloaded data ************************ -->
-		<div class="gdcCheckAgreementModal" data-bind="visible: ('gdcdata'===$root.selectedDatasetType()) && !($root.gdcCheckAgreement())">
-			<div style="width: 300px;" class="roundedBox modalContent">
-				<strong>Agree to GDC Data Guidelines</strong><br>
-				<p>By downloading, analyzing, and/or using TCGA data for publication purposes,
-					the user accepts the data use restrictions and requirements as outlined in
-					the TCGA Publication Guidelines. See <a target="_blank" href="https://docs.gdc.cancer.gov/Data/Release_Notes/Data_Release_Notes/">https://docs.gdc.cancer.gov/Data/Release_Notes/Data_Release_Notes/</a> 
-					for additional information. 
-				<p>
-					<input type="checkbox" data-bind="checked: $root.gdcCheckAgreement"/>I agree
-			</div>
-		</div>
-		<div class="roundedBox" data-bind="visible: (('gdcdata'===$root.selectedDatasetType()&&('NEWJOB_START'===$root.jobState()))||(('NEWJOB_PRIMARY_GDC_MANIFEST'===$root.jobState())||('NEWJOB_SECONDARY_GDC_MANIFEST'===$root.jobState())))">
-			<strong>Use GDC Downloaded Data (Current)</strong>
-			<div style="float: right;" class="tooltip">
-				<img id="tooltipImage_selectedDatasetType_gdcdata" title="GDC Data Option" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
-				<span id="tooltipContent_selectedDatasetType_gdcdata" class="tooltiptext">GDC Download Option:<br><br>
-					Select dataset from GDC to download.
-				</span>
-			</div>
-			<table>
-				<tbody>
-					<tr  data-bind="visible: ('NEWJOB_START'===$root.jobState())||('NEWJOB_PRIMARY_DONE'===$root.jobState())">
-						<td>GDC Dataset Selection:</td>
-						<td>
-							<select class="veryWideInputAndSelect" data-bind="options: $root.gdcDatasetList, selectedOptions: $root.gdcDatasetSelected"></select>
-						</td>
-					</tr>
-					<tr  data-bind="visible: ('NEWJOB_START'===$root.jobState())||('NEWJOB_PRIMARY_DONE'===$root.jobState())">
-						<td>Selected Dataset:</td>
-						<td>
-							<span data-bind="text:$root.gdcDatasetSelected()"></span>
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span  data-bind="visible: ('NEWJOB_PRIMARY_GDC_MANIFEST'===$root.jobState())">
-								<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Primary GDC Manifest Files Uploaded</strong>
-							</span>
-							<span  data-bind="visible: ('NEWJOB_SECONDARY_GDC_MANIFEST'===$root.jobState())">
-								<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Secondary GDC Manifest Files Uploaded</strong>
-							</span>
-							<button class="buttons" id="gdcManifestFileSelectorButtonPrimary" 
-									data-bind="click: function(data, event) { $root.uploadManifest('NO', $root.gdcDatasetSelected(), 'gdc'); }, visible: ('NEWJOB_START'===$root.jobState())">Select Primary GDC Selection</button>
-							<button class="buttons" id="gdcManifestFileSelectorButtonSecondary" 
-									data-bind="click: function(data, event) { $root.uploadManifest('YES', $root.gdcDatasetSelected(), 'gdc'); }, visible: ('NEWJOB_PRIMARY_DONE'===$root.jobState())">Select Secondary GDC Selection</button>
-						</td>
-						<td>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-			<br>
-			<div class="marginLeft10px marginTop10px">
-				<span class="marginTop10px">*For More Information on GDC Terminology: <a target="_blank" href="https://docs.gdc.cancer.gov/Data/Introduction/">https://docs.gdc.cancer.gov/Data/Introduction/</a></span>
-			</div>
-			<button class="buttons inlineblock marginTop10px marginLeft10px" id="selectedPrimaryDatasetType_gdcdata_button" 
-					data-bind="click: function(data, event) { $root.goDownloadGDC('NO'); }, enable: ('NEWJOB_PRIMARY_GDC_MANIFEST'===$root.jobState()), 
-								visible: (('NEWJOB_PRIMARY_GDC_MANIFEST'===$root.jobState()) || ('NEWJOB_START'===$root.jobState()))">Use Primary Downloaded GDC Data</button>
-			<button class="buttons inlineblock marginTop10px marginLeft10px" id="selectedSecondaryDatasetType_gdcdata_button" 
-					data-bind="click: function(data, event) { $root.goDownloadGDC('YES'); }, enable: ('NEWJOB_SECONDARY_GDC_MANIFEST'===$root.jobState()), 
-								visible: (('NEWJOB_SECONDARY_GDC_MANIFEST'===$root.jobState()) || ('NEWJOB_PRIMARY_DONE'===$root.jobState()))">Use Secondary Downloaded GDC Data</button>
-		</div>
-		<!-- **** END: select GDC Downloaded data ************************** -->
-		<!-- **** START: select MW Downloaded data ************************ -->
-		<div class="roundedBox" data-bind="visible: (('mwdata'===$root.selectedDatasetType()&&('NEWJOB_START'===$root.jobState()))||(('NEWJOB_PRIMARY_MW_MANIFEST'===$root.jobState())||('NEWJOB_SECONDARY_MW_MANIFEST'===$root.jobState())))">
-			<strong>Use Metabolomics Workbench Downloaded Data</strong>
-			<div style="float: right;" class="tooltip">
-				<img id="tooltipImage_selectedDatasetType_mwdata" title="MW Data Option" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
-				<span id="tooltipContent_selectedDatasetType_mwdata" class="tooltiptext">MW Download Option:<br><br>
-					Select dataset from MW to download.
-				</span>
-			</div>
-			<table>
-				<tbody>
-					<tr  data-bind="visible: ('NEWJOB_START'===$root.jobState())||('NEWJOB_PRIMARY_DONE'===$root.jobState())">
-						<td>MW Dataset Selection:</td>
-						<td>
-							<select class="veryWideInputAndSelect" data-bind="options: $root.mwDatasetList, selectedOptions: $root.mwDatasetSelected"></select>
-						</td>
-					</tr>
-					<tr  data-bind="visible: ('NEWJOB_START'===$root.jobState())||('NEWJOB_PRIMARY_DONE'===$root.jobState())">
-						<td>Selected Dataset:</td>
-						<td>
-							<span data-bind="text:$root.mwDatasetSelected()"></span>
-						</td>
-					</tr>
-					<tr>
-						<td>
-							<span  data-bind="visible: ('NEWJOB_PRIMARY_MW_MANIFEST'===$root.jobState())">
-								<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Primary MW Manifest Files Uploaded</strong>
-							</span>
-							<span  data-bind="visible: ('NEWJOB_SECONDARY_MW_MANIFEST'===$root.jobState())">
-								<img src="images/checkmark.png" class="guiIconDimensions" alt="Completed"><strong>&nbsp;Secondary MW Manifest Files Uploaded</strong>
-							</span>
-							<button class="buttons" id="mwManifestFileSelectorButtonPrimary" 
-									data-bind="click: function(data, event) { $root.uploadManifest('NO', $root.mwDatasetSelected(), 'mw'); }, visible: ('NEWJOB_START'===$root.jobState())">Select Primary MW Selection</button>
-							<button class="buttons" id="mwManifestFileSelectorButtonSecondary" 
-									data-bind="click: function(data, event) { $root.uploadManifest('YES', $root.mwDatasetSelected(), 'mw'); }, visible: ('NEWJOB_PRIMARY_DONE'===$root.jobState())">Select Secondary MW Selection</button>
-						</td>
-						<td>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-			<br>
-			<div class="marginLeft10px marginTop10px">
-				<span class="marginTop10px">*For More Information on MW Terminology: <a target="_blank" href="https://www.metabolomicsworkbench.org/">https://www.metabolomicsworkbench.org/</a></span>
-			</div>
-			<button class="buttons inlineblock marginTop10px marginLeft10px" id="selectedPrimaryDatasetType_mwdata_button" 
-					data-bind="click: function(data, event) { $root.goDownloadMW('NO'); }, enable: ('NEWJOB_PRIMARY_MW_MANIFEST'===$root.jobState()), 
-								visible: (('NEWJOB_PRIMARY_MW_MANIFEST'===$root.jobState()) || ('NEWJOB_START'===$root.jobState()))">Use Primary Downloaded MW Data</button>
-			<button class="buttons inlineblock marginTop10px marginLeft10px" id="selectedSecondaryDatasetType_mwdata_button" 
-					data-bind="click: function(data, event) { $root.goDownloadMW('YES'); }, enable: ('NEWJOB_SECONDARY_MW_MANIFEST'===$root.jobState()), 
-								visible: (('NEWJOB_SECONDARY_MW_MANIFEST'===$root.jobState()) || ('NEWJOB_PRIMARY_DONE'===$root.jobState()))">Use Secondary Downloaded MW Data</button>
-		</div>
-		<!-- **** END: select MW Downloaded data ************************** -->
 		<!-- **** START: select User Uploaded data ************************* -->
 		<div class="roundedBox" data-bind="visible: (('userdata'===$root.selectedDatasetType())&&(('NEWJOB_START'===$root.jobState())||('NEWJOB_PRIMARY_USER_MATRIX'===$root.jobState())||('NEWJOB_PRIMARY_DONE'===$root.jobState())||('NEWJOB_SECONDARY_USER_MATRIX'===$root.jobState())))">
 			<strong>Upload User Data Here</strong>

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "START 02_dockerSed"
+echo "START GitLabCi mba-stack 02_dockerSed"
 
 echo "BEA_VERSION_TIMESTAMP"
 
@@ -44,24 +44,31 @@ fi
 LOCAL_PATH_ENV=${8}
 ### file with properties and job list for this installation
 PROP_DIR=${LOCAL_PATH_ENV}/PROPS
-### directory for output from MBA, GDCDownload, and MBatch Results
+### directory for output from MBA and MBatch Results
 JOB_OUTPUT_DIR=${LOCAL_PATH_ENV}/OUTPUT
 ### directory for the Batch Effects Website
 WEBSITE_DIR=${LOCAL_PATH_ENV}/WEBSITE
 ### read-only directory for util files
 UTIL_DIR=${LOCAL_PATH_ENV}/UTIL
 
-# URL and tag to use as image name for MBA image, such as mdabcb/smw_image:DAP_BEA_VERSION_TIMESTAMP
+# URL and tag to use as image name for MBA image, such as mdabcb/mba_image:DAP_BEA_VERSION_TIMESTAMP
 MBA_IMAGEURL=${9}
-# URL and tag to use as image name for MBatch image, such as mdabcb/smw_image:DAP_BEA_VERSION_TIMESTAMP
+# URL and tag to use as image name for MBatch image, such as mdabcb/mbatch_image:DAP_BEA_VERSION_TIMESTAMP
 MBATCH_IMAGEURL=${10}
-# URL and tag to use as image name for GDC Download image, such as mdabcb/smw_image:DAP_BEA_VERSION_TIMESTAMP
-GDC_IMAGEURL=${11}
-# URL and tag to use as image name for BEV image, such as mdabcb/smw_image:DAP_BEA_VERSION_TIMESTAMP
-BEV_IMAGEURL=${12}
+# URL and tag to use as image name for BEV image, such as mdabcb/bev_image:DAP_BEA_VERSION_TIMESTAMP
+BEV_IMAGEURL=${11}
 
-OUTSIDE_CONFIGPATH=${13}
-ZIPTMPPATH=${14}
+OUTSIDE_CONFIGPATH=${12}
+ZIPTMPPATH=${13}
+
+# path for log files
+LOGPATH=${14}
+
+# group id, such as 2002
+GROUP_ID=${15}
+
+# path for Shaidy server setup
+SHAIDY_DIR=${16}
 
 # if SUBNET is not equal to 0, then also remove the #SUBNET comments so the IPAM gets used
 IPAM_COMMENT=#SUBNET
@@ -70,11 +77,32 @@ if [ "${SUBNET}" != "0" ]; then
 	IPAM_COMMENT=
 fi
 
+echo "MBA arguments"
+echo "BASE_DIR=${BASE_DIR}"
+echo "RELEASE=${RELEASE}"
+echo "USER_ID=${USER_ID}"
+echo "MBA_PORT=${MBA_PORT}"
+echo "BEV_PORT=${BEV_PORT}"
+echo "SUBNET=${SUBNET}"
+echo "ENVIRON=${ENVIRON}"
+echo "LOCAL_PATH_ENV=${LOCAL_PATH_ENV}"
+echo "MBA_IMAGEURL=${MBA_IMAGEURL}"
+echo "MBATCH_IMAGEURL=${MBATCH_IMAGEURL}"
+echo "BEV_IMAGEURL=${BEV_IMAGEURL}"
+echo "OUTSIDE_CONFIGPATH=${OUTSIDE_CONFIGPATH}"
+echo "ZIPTMPPATH=${ZIPTMPPATH}"
+echo "LOGPATH=${LOGPATH}"
+echo "GROUP_ID=${GROUP_ID}"
+echo "SHAIDY_DIR=${SHAIDY_DIR}"
+
 echo "create Dockerfile from Dockerfile_template"
+
+# #- <SHAIDY-DIR>:/MBA/SHAIDY
 
 rm -f ${BASE_DIR}/mba-image/Dockerfile
 sed -e "s|<RELEASE_VERSION>|${RELEASE}|g" \
     -e "s|<USERID>|${USER_ID}|g" \
+    -e "s|<GROUPID>|${GROUP_ID}|g" \
     -e "s|<LOG_DIR>|${JOB_OUTPUT_DIR}|g" \
     -e "s|<START_SCRIPT>|${START_SCRIPT}|g" \
     -e "s|<STOP_SCRIPT>|${STOP_SCRIPT}|g" \
@@ -84,24 +112,17 @@ sed -e "s|<RELEASE_VERSION>|${RELEASE}|g" \
 rm -f ${BASE_DIR}/bev-image/Dockerfile
 sed -e "s|<RELEASE_VERSION>|${RELEASE}|g" \
     -e "s|<USERID>|${USER_ID}|g" \
+    -e "s|<GROUPID>|${GROUP_ID}|g" \
     -e "s|<LOG_DIR>|${JOB_OUTPUT_DIR}|g" \
     -e "s|<START_SCRIPT>|${START_SCRIPT}|g" \
     -e "s|<STOP_SCRIPT>|${STOP_SCRIPT}|g" \
     -e "s|<UPCHECK_SCRIPT>|${UPCHECK_SCRIPT}|g" \
     ${BASE_DIR}/bev-image/Dockerfile_template > ${BASE_DIR}/bev-image/Dockerfile
 
-rm -f ${BASE_DIR}/dc-image/Dockerfile
-sed -e "s|<RELEASE_VERSION>|${RELEASE}|g" \
-    -e "s|<USERID>|${USER_ID}|g" \
-    -e "s|<LOG_DIR>|${JOB_OUTPUT_DIR}|g" \
-    -e "s|<START_SCRIPT>|${START_SCRIPT}|g" \
-    -e "s|<STOP_SCRIPT>|${STOP_SCRIPT}|g" \
-    -e "s|<UPCHECK_SCRIPT>|${UPCHECK_SCRIPT}|g" \
-    ${BASE_DIR}/dc-image/Dockerfile_template > ${BASE_DIR}/dc-image/Dockerfile
-
 rm -f ${BASE_DIR}/mbatch-image/Dockerfile
 sed -e "s|<RELEASE_VERSION>|${RELEASE}|g" \
     -e "s|<USERID>|${USER_ID}|g" \
+    -e "s|<GROUPID>|${GROUP_ID}|g" \
     -e "s|<LOG_DIR>|${JOB_OUTPUT_DIR}|g" \
     -e "s|<START_SCRIPT>|${START_SCRIPT}|g" \
     -e "s|<STOP_SCRIPT>|${STOP_SCRIPT}|g" \
@@ -116,7 +137,6 @@ sed -e "s|<SUBNET>|${SUBNET}|g" \
     -e "s|<MBA-IMAGEURL>|${MBA_IMAGEURL}|g" \
     -e "s|<MBA-PORT>|${MBA_PORT}|g" \
     -e "s|<MBATCH-IMAGEURL>|${MBATCH_IMAGEURL}|g" \
-    -e "s|<GDC-IMAGEURL>|${GDC_IMAGEURL}|g" \
     -e "s|<BEV-IMAGEURL>|${BEV_IMAGEURL}|g" \
     -e "s|<BEV-PORT>|${BEV_PORT}|g" \
     -e "s|<PROP-DIR>|${PROP_DIR}|g" \
@@ -127,9 +147,11 @@ sed -e "s|<SUBNET>|${SUBNET}|g" \
     -e "s|<IMAGEURL>|${IMAGE_URL}|g" \
     -e "s|<CONFIGPATH>|${OUTSIDE_CONFIGPATH}|g" \
     -e "s|<ZIPTMPPATH>|${ZIPTMPPATH}|g" \
+    -e "s|<LOGPATH>|${LOGPATH}|g" \
+    -e "s|#- <SHAIDY-DIR>|- ${SHAIDY_DIR}|g" \
     ${BASE_DIR}/docker-compose_template.yml > ${BASE_DIR}/docker-compose.yml
 
-# then build with docker-compose -f docker-compose.yml build --force-rm --no-cache
+# then build with docker compose -f docker-compose.yml build --force-rm --no-cache
 
 echo "FINISH 02_dockerSed"
 

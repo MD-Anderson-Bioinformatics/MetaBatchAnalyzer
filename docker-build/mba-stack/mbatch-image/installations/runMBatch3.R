@@ -1,4 +1,4 @@
-# MBatch Copyright (c) 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 University of Texas MD Anderson Cancer Center
+# MBatch Copyright (c) 2011-2022 University of Texas MD Anderson Cancer Center
 #
 # This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
 #
@@ -30,7 +30,7 @@ for( myStr in commandArgs() )
 findCorrectedTsv <- function(theBaseDir)
 {
   filepath <- NULL
-  fileFound <- dir(theBaseDir, "ANY_Corrections-.*tsv")
+  fileFound <- dir(theBaseDir, "corrected_matrix.tsv")
   if (length(fileFound)>0)
   {
     filepath <- file.path(theBaseDir, fileFound)
@@ -54,15 +54,13 @@ tryCatch({
   message(paste("runMBatch3.R zipDir: ", zipDir))
   message(paste("runMBatch3.R resultDir: ", resultDir))
   message(paste("runMBatch3.R dataDir: ", dataDir))
-  buildSingleArchive(theMbatchID=mbatchID, theResultDir=resultDir, theDataDir=dataDir, theZipDir=zipDir)
-}, warning = function(war){
-  message(paste("runMBatch3.R hit the Warning: ", war))
-  runStatus <- "warning"
-  traceback()
+  buildSingleArchive(theResultDir=resultDir, theDataDir=dataDir, theZipDir=zipDir)
 }, error = function(err){
   message(paste("runMBatch3.R hit the error: ", err))
   runStatus <- "error"
   traceback()
 }, finally = {
+  # do not catch warnings, since then they act like errors and stop the process
+  warnings()
   cat(runStatus)
 })

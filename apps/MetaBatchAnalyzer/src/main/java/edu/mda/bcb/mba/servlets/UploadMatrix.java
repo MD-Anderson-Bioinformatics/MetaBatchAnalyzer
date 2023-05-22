@@ -1,4 +1,4 @@
-// Copyright (c) 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 University of Texas MD Anderson Cancer Center
+// Copyright (c) 2011-2022 University of Texas MD Anderson Cancer Center
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
 //
@@ -15,13 +15,11 @@ import edu.mda.bcb.mba.utils.MBAUtils;
 import edu.mda.bcb.samval.matrix.Matrix;
 import edu.mda.bcb.mba.status.JOB_STATUS;
 import edu.mda.bcb.mba.status.JobStatus;
+import edu.mda.bcb.mba.utils.ScanCheck;
 import edu.mda.bcb.samval.matrix.Builder;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -31,6 +29,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.Part;
+import org.apache.commons.io.FileUtils;
 
 /**
  *
@@ -68,6 +67,7 @@ public class UploadMatrix extends MBAServletMixin
 	{
 		// return to user handled in parent
 		String jobId = request.getParameter("jobId");
+		ScanCheck.checkForMetaCharacters(jobId);
 		JobStatus.checkJobId(jobId);
 		boolean keepOriginalFlag = paramStringToBool(request.getParameter("keepOriginal"));
 		// No rectangle flag should be logically inverted
@@ -75,6 +75,7 @@ public class UploadMatrix extends MBAServletMixin
 		boolean sortRowsFlag = paramStringToBool(request.getParameter("sortRows"));
 		boolean sortColsFlag = paramStringToBool(request.getParameter("sortCols"));
 		String isAlternate = request.getParameter("isAlternate");
+		ScanCheck.checkForYesNo(isAlternate);
 		boolean isAlternateP = request.getParameter("isAlternate").equals("YES");
 		File jobDir = new File(MBAUtils.M_OUTPUT, jobId);
 		File zipDataDir = new File(jobDir, "ZIP-DATA");
@@ -123,13 +124,15 @@ public class UploadMatrix extends MBAServletMixin
 			else
 			{
 				message = "";
-				if (!result1.equals(successfulUpload))
+				if (!successfulUpload.equals(result1))
 				{
 					message += "File Upload Failure: " + result1 + ". ";
+					throw new IOException(message);
 				}
-				if (!result2.equals(successfulPostProcessing))
+				if (!successfulPostProcessing.equals(result2))
 				{
 					message += "File Post-Processing Failure: " + result2;
+					throw new IOException(message);
 				}
 			}
 		}
@@ -147,8 +150,6 @@ public class UploadMatrix extends MBAServletMixin
 	{
 		String message = "";
 		// TODO: replace with automatic try open/close
-		OutputStream out = null;
-		InputStream filecontent = null;
 		try
 		{
 			theServlet.log("name is =" + thePart.getName());
@@ -161,22 +162,7 @@ public class UploadMatrix extends MBAServletMixin
 			}
 			else
 			{
-				//long size = 0;
-				//String machineName = InetAddress.getLocalHost().getHostName();
-				//final String fileName = getFileName(thePart, theServlet);
-				out = new FileOutputStream(theSavePath);
-				filecontent = thePart.getInputStream();
-
-				int read = 0;
-				final byte[] bytes = new byte[1024];
-
-				while ((read = filecontent.read(bytes)) != -1)
-				{
-					//size = size + 1024;
-					out.write(bytes, 0, read);
-				}
-				theServlet.log("File mbang uploaded to " + theSavePath);
-				message = successfulUpload;
+				message = MBAUtils.uploadTextOnlyFile(thePart, theSavePath, theServlet, successfulUpload);
 			}
 		}
 		catch (FileNotFoundException exp)
@@ -192,37 +178,13 @@ public class UploadMatrix extends MBAServletMixin
 			theServlet.log("Problems during file upload. Error: " + exp.getMessage(), exp);
 			throw new Exception(message, exp);
 		}
-		finally
-		{
-			if (out != null)
-			{
-				try
-				{
-					out.close();
-				}
-				catch (Exception ignore)
-				{
-					//
-				}
-			}
-			if (filecontent != null)
-			{
-				try
-				{
-					filecontent.close();
-				}
-				catch (Exception ignore)
-				{
-					//
-				}
-			}
-		}
 		return message;
 	}
 
 	// Utility to interpret "false" and "true" flag argument values from request parameters.
-	public static boolean paramStringToBool(String param)
+	public static boolean paramStringToBool(String param) throws Exception
 	{
+		ScanCheck.checkForBoolean(param);
 		return param.equals("true");
 	}
 
@@ -262,6 +224,7 @@ public class UploadMatrix extends MBAServletMixin
 		}
 		catch (Exception e)
 		{
+			FileUtils.deleteQuietly(new File(matrixPath));
 			return e.getMessage();
 		}
 	}

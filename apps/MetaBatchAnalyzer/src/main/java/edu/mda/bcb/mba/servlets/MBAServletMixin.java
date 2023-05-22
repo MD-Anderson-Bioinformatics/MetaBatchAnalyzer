@@ -1,4 +1,4 @@
-// Copyright (c) 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 University of Texas MD Anderson Cancer Center
+// Copyright (c) 2011-2022 University of Texas MD Anderson Cancer Center
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
 //
@@ -14,6 +14,7 @@ package edu.mda.bcb.mba.servlets;
 import edu.mda.bcb.mba.utils.MBAUtils;
 import edu.mda.bcb.mba.authorization.Authorization;
 import edu.mda.bcb.mba.status.JobStatus;
+import edu.mda.bcb.mba.utils.ScanCheck;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -67,8 +68,10 @@ public abstract class MBAServletMixin extends HttpServlet
 	{
 		try
 		{
+			ScanCheck.checkForSecurity(request);
 			log("version = " + edu.mda.bcb.mba.utils.MBAUtils.M_VERSION);
 			String jobId = request.getParameter("jobId");
+			ScanCheck.checkForMetaCharacters(jobId);
 			log("passed in jobId is " + jobId);
 			if (null!=jobId)
 			{
@@ -103,7 +106,11 @@ public abstract class MBAServletMixin extends HttpServlet
 			log("MBAServletMixin::processRequest failed", exp);
 			response.setContentType("text;charset=UTF-8");
 			response.setStatus(400);
-			response.sendError(400);
+			try (PrintWriter out = response.getWriter())
+			{
+				out.append("Server found an error. If were uploading, please check the file format and type.");
+			}
+			//response.sendError(400, "Problem with uploaded file");
 			if (null!=mErrorFile)
 			{
 				Files.write(mErrorFile.toPath(), exp.getMessage().getBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);

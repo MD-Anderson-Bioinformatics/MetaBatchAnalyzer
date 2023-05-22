@@ -1,4 +1,4 @@
-// Copyright (c) 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 University of Texas MD Anderson Cancer Center
+// Copyright (c) 2011-2022 University of Texas MD Anderson Cancer Center
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
 //
@@ -8,11 +8,11 @@
 //
 // MD Anderson Cancer Center Bioinformatics on GitHub <https://github.com/MD-Anderson-Bioinformatics>
 // MD Anderson Cancer Center Bioinformatics at MDA <https://www.mdanderson.org/research/departments-labs-institutes/departments-divisions/bioinformatics-and-computational-biology.html>
-
 package edu.mda.bcb.mba.servlets;
 
 import edu.mda.bcb.mba.status.JobStatus;
 import edu.mda.bcb.mba.utils.MBAUtils;
+import edu.mda.bcb.mba.utils.ScanCheck;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -37,15 +37,124 @@ import org.apache.commons.text.StringEscapeUtils;
 })
 public class MBatchConfig extends MBAServletMixin
 {
+
 	public MBatchConfig()
 	{
 		super("application/json;charset=UTF-8", true, MBatchConfig.class);
+	}
+
+	protected void checkMbatchConfigData(HttpServletRequest theRequest) throws Exception
+	{
+		//
+		String action = theRequest.getParameter("action");
+		if ((!"initialize".equals(action)) && (!"write".equals(action)))
+		{
+			throw new Exception("Illegal Action value");
+		}
+		//
+		String configDesc = theRequest.getParameter("configDesc");
+		if ((!"MBatch".equals(configDesc)) && (!"MutBatch".equals(configDesc)))
+		{
+			throw new Exception("Illegal configDesc value");
+		}
+		//
+		Enumeration<String> sEnum = theRequest.getParameterNames();
+		while (sEnum.hasMoreElements())
+		{
+			String paraName = sEnum.nextElement();
+			String paraValue = theRequest.getParameter(paraName);
+			if (("jobId".equals(paraName)) || ("configDesc".equals(paraName))
+					|| ("DataVersion".equals(paraName)) || ("TestVersion".equals(paraName))
+					|| ("mutBatchMem".equals(paraName)) || ("RBN_InvariantId".equals(paraName))
+					|| ("RBN_VariantId".equals(paraName)) || ("EBNPlus_GroupId1".equals(paraName))
+					|| ("EBNPlus_GroupId2".equals(paraName)) || ("RBN_InvariantRepsType".equals(paraName))
+					|| ("RBN_VariantRepsType".equals(paraName)) || ("sampleidBatchType".equals(paraName))
+					|| ("filteringBatchType".equals(paraName)) || ("ngchmRowType".equals(paraName))
+					|| ("ngchmColumnType".equals(paraName)) || ("title".equals(paraName)))
+			{
+				ScanCheck.checkForMetaCharacters(paraValue);
+			}
+			else
+			{
+				if (("mutationsMutbatchFlag".equals(paraName))
+						|| ("filterLogTransformFlag".equals(paraName)) || ("CDP_Flag".equals(paraName))
+						|| ("selectedNgchmFlag".equals(paraName)) || ("filterLogTransformFlag2".equals(paraName))
+						|| ("RBN_Only".equals(paraName)) || ("RBN_UseFirstAsInvariantFlag".equals(paraName))
+						|| ("RBN_Matched".equals(paraName)))
+				{
+					ScanCheck.checkForMetaCharacters(paraValue);
+					ScanCheck.checkForBoolean(paraValue);
+				}
+				else
+				{
+					if (("mutBatchThreads".equals(paraName))
+							|| ("filterMaxValue".equals(paraName)) || ("selectedCorrectionMinBatchSize".equals(paraName))
+							|| ("selectedDSCPermutations".equals(paraName)) || ("selectedDSCThreads".equals(paraName))
+							|| ("selectedDSCMinBatchSize".equals(paraName)) || ("selectedDSCSeed".equals(paraName))
+							|| ("selectedDSCMaxGeneCount".equals(paraName)) || ("selectedBoxplotMaxGeneCount".equals(paraName))
+							|| ("EBNPlus_Seed".equals(paraName)) || ("EBNPlus_MinSamples".equals(paraName)))
+					{
+						ScanCheck.checkForMetaCharacters(paraValue);
+						ScanCheck.checkForInt(paraValue);
+					}
+					else
+					{
+						if (("mutBatchPvalueCutoff".equals(paraName))
+								|| ("mutBatchZscoreCutoff".equals(paraName)) || ("".equals(paraName))
+								|| ("".equals(paraName)) || ("".equals(paraName)))
+						{
+							ScanCheck.checkForMetaCharacters(paraValue);
+							ScanCheck.checkForFloat(paraValue);
+						}
+						else
+						{
+							if (("batchTypesForMBatchArray".equals(paraName))
+									|| ("filteringBatchesArray".equals(paraName)) || ("RBN_InvariantRepsArray".equals(paraName))
+									|| ("RBN_VariantRepsArray".equals(paraName)) || ("".equals(paraName))
+									|| ("".equals(paraName)) || ("".equals(paraName))
+									|| ("".equals(paraName)) || ("".equals(paraName)))
+							{
+								// comma delimited list or empty
+								ScanCheck.checkForMetaCharacters(paraValue);
+								// checkForBatchTypesAndValues(paraValue);
+							}
+							else
+							{
+								if (("mutBatchDataBaseDir".equals(paraName))
+										|| ("mutBatchExtractDir".equals(paraName)) || ("mutBatchOutputDir".equals(paraName)))
+								{
+									// legal directory path
+									ScanCheck.checkForMetaCharacters(paraValue);
+									// checkForBatchTypesAndValues(paraValue);
+								}
+								else
+								{
+									if ("selectedCorrection".equals(paraName))
+									{
+										if ( (!"null".equals(paraValue)) && (!"none".equals(paraValue)) && 
+												(!"ANOVA_adj".equals(paraValue))
+												&& (!"ANOVA_unadj".equals(paraValue)) && (!"EB_withPara".equals(paraValue))
+												&& (!"EB_withNonpara".equals(paraValue)) && (!"MP_batch".equals(paraValue))
+												&& (!"MP_overall".equals(paraValue)) && (!"RBN_Replicates".equals(paraValue))
+												&& (!"RBN_Pseudoreps".equals(paraValue)) && (!"EBN_Plus".equals(paraValue)))
+										{
+											throw new Exception("Illegal Correction found");
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	@Override
 	protected void internalProcess(HttpServletRequest request, StringBuffer theBuffer) throws Exception
 	{
 		// return to user handled in parent
+		checkMbatchConfigData(request);
 		String jobId = request.getParameter("jobId");
 		log("passed in jobId is " + jobId);
 		JobStatus.checkJobId(jobId);
@@ -55,16 +164,16 @@ public class MBatchConfig extends MBAServletMixin
 		boolean readOrInitFile = ("initialize".equals(action));
 		boolean writeFile = ("write".equals(action));
 		// configDesc	MutBatch
-		boolean isMutBatch = false;
+		boolean isMutationsMutBatch = false;
 		String configDesc = request.getParameter("configDesc");
 		if ("MutBatch".equals(configDesc))
 		{
-			isMutBatch = true;
+			isMutationsMutBatch = true;
 		}
 		// get list of parameters and write them
 		File jobDir = new File(MBAUtils.M_OUTPUT, jobId);
 		Enumeration<String> sEnum = request.getParameterNames();
-		while(sEnum.hasMoreElements())
+		while (sEnum.hasMoreElements())
 		{
 			String paraName = sEnum.nextElement();
 			String paraValue = request.getParameter(paraName);
@@ -73,32 +182,39 @@ public class MBatchConfig extends MBAServletMixin
 		File zipResultsDir = new File(jobDir, "ZIP-RESULTS");
 		zipResultsDir.mkdirs();
 		File configFile = new File(zipResultsDir, "MBatchConfig.tsv");
-		if (true==readOrInitFile)
+		if (true == readOrInitFile)
 		{
 			if (!configFile.exists())
 			{
-				writeConfigFile(request, configFile, isMutBatch, jobDir, jobId);
+				writeConfigFile(request, configFile, isMutationsMutBatch, jobDir, jobId);
 			}
 		}
-		else if (true==writeFile)
+		else
 		{
-			writeConfigFile(request, configFile, isMutBatch, jobDir, jobId);
+			if (true == writeFile)
+			{
+				writeConfigFile(request, configFile, isMutationsMutBatch, jobDir, jobId);
+			}
 		}
 		readConfigFile(theBuffer, configFile);
 	}
-	
-	public void writeConfigFile(HttpServletRequest theRequest, File theConfigFile, boolean theMutBatchFlag, File theJobDir, String theJobId) throws IOException
+
+	public void writeConfigFile(HttpServletRequest theRequest, File theConfigFile,
+			boolean theMutationsMutBatchFlag, File theJobDir, String theJobId) throws IOException
 	{
-		OpenOption[] options = new OpenOption[] { StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING };
-		try(BufferedWriter bw = java.nio.file.Files.newBufferedWriter(Paths.get(theConfigFile.getAbsolutePath()), Charset.availableCharsets().get("UTF-8"), options))
+		OpenOption[] options = new OpenOption[]
+		{
+			StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING
+		};
+		try (BufferedWriter bw = java.nio.file.Files.newBufferedWriter(Paths.get(theConfigFile.getAbsolutePath()), Charset.availableCharsets().get("UTF-8"), options))
 		{
 			boolean foundTitle = false;
 			Enumeration<String> sEnum = theRequest.getParameterNames();
-			while(sEnum.hasMoreElements())
+			while (sEnum.hasMoreElements())
 			{
 				String paraName = sEnum.nextElement();
 				String value = null;
-				if ((!"_".equals(paraName))&&(!"action".equals(paraName)))
+				if ((!"_".equals(paraName)) && (!"action".equals(paraName)))
 				{
 					if ("title".equals(paraName))
 					{
@@ -107,13 +223,13 @@ public class MBatchConfig extends MBAServletMixin
 					if (paraName.endsWith("[]"))
 					{
 						//"batchTypesForMBatch[]"
-						String [] tmp = theRequest.getParameterValues(paraName);
+						String[] tmp = theRequest.getParameterValues(paraName);
 						paraName = paraName.replace("[]", "");
-						if (null!=tmp)
+						if (null != tmp)
 						{
 							for (String val : tmp)
 							{
-								if (null==value)
+								if (null == value)
 								{
 									value = val;
 								}
@@ -124,32 +240,30 @@ public class MBatchConfig extends MBAServletMixin
 							}
 						}
 					}
-					else if (paraName.endsWith("Flag"))
+					else
 					{
-						value = theRequest.getParameter(paraName);
-						if ("true".equalsIgnoreCase(value))
+						if (paraName.endsWith("Flag"))
 						{
-							value = "TRUE";
+							value = theRequest.getParameter(paraName);
+							if ("true".equalsIgnoreCase(value))
+							{
+								value = "TRUE";
+							}
+							else
+							{
+								value = "FALSE";
+							}
 						}
 						else
 						{
-							value = "FALSE";
+							value = theRequest.getParameter(paraName);
 						}
-					}
-					else
-					{
-						value = theRequest.getParameter(paraName);
 					}
 					bw.write(paraName + "\t" + value);
 					bw.newLine();
-					if ("batchTypesForMBatchArray".equals(paraName))
-					{
-						bw.write("batchTypesForTRINOVA" + "\t" + value);
-						bw.newLine();
-					}
 				}
 			}
-			if (false==foundTitle)
+			if (false == foundTitle)
 			{
 				bw.write("title\tBatch Effects Run from MBA");
 				bw.newLine();
@@ -161,7 +275,7 @@ public class MBatchConfig extends MBAServletMixin
 			{
 				FileUtils.deleteDirectory(mafFiles);
 			}
-			if (true==theMutBatchFlag)
+			if (true == theMutationsMutBatchFlag)
 			{
 				bw.write("mutBatchDataBaseDir\t" + mafFiles.getAbsolutePath());
 				bw.newLine();
@@ -184,7 +298,7 @@ public class MBatchConfig extends MBAServletMixin
 		theBuffer.append("{");
 		for (String line : lines)
 		{
-			String [] splitted = line.split("\t");
+			String[] splitted = line.split("\t");
 			if (wrote)
 			{
 				theBuffer.append(",");
@@ -202,11 +316,11 @@ public class MBatchConfig extends MBAServletMixin
 				else
 				{
 					theBuffer.append("\n\"" + StringEscapeUtils.escapeJson(splitted[0]) + "\":[");
-					String [] arrayList = splitted[1].split(",", -1);
+					String[] arrayList = splitted[1].split(",", -1);
 					boolean listStarted = false;
 					for (String ele : arrayList)
 					{
-						if (true==listStarted)
+						if (true == listStarted)
 						{
 							theBuffer.append(",");
 						}
@@ -219,20 +333,23 @@ public class MBatchConfig extends MBAServletMixin
 					theBuffer.append("]");
 				}
 			}
-			else if (splitted[0].endsWith("Flag"))
+			else
 			{
-				if ("true".equalsIgnoreCase(splitted[1]))
+				if (splitted[0].endsWith("Flag"))
 				{
-					theBuffer.append("\n\"" + StringEscapeUtils.escapeJson(splitted[0]) + "\":\"true\"");
+					if ("true".equalsIgnoreCase(splitted[1]))
+					{
+						theBuffer.append("\n\"" + StringEscapeUtils.escapeJson(splitted[0]) + "\":\"true\"");
+					}
+					else
+					{
+						theBuffer.append("\n\"" + StringEscapeUtils.escapeJson(splitted[0]) + "\":\"false\"");
+					}
 				}
 				else
 				{
-					theBuffer.append("\n\"" + StringEscapeUtils.escapeJson(splitted[0]) + "\":\"false\"");
+					theBuffer.append("\n\"" + StringEscapeUtils.escapeJson(splitted[0]) + "\":\"" + StringEscapeUtils.escapeJson(splitted[1]) + "\"");
 				}
-			}
-			else
-			{
-				theBuffer.append("\n\"" + StringEscapeUtils.escapeJson(splitted[0]) + "\":\"" + StringEscapeUtils.escapeJson(splitted[1]) + "\"");
 			}
 		}
 		theBuffer.append("\n}\n");

@@ -182,6 +182,21 @@ goAuthOut = function()
 };
 
 // This function converts the job ID (which is epoch time) to a readable date and time.
+getNowTimestamp = function()
+{
+	const currentTime = new Date().getTime();
+	
+	//pad is a function that will convert a one place-holder value interger to two. (Ex. 0 --> 00, 1 --> 01)
+	pad = function(nonPadded)
+	{
+		return (nonPadded < 10) ? '0' + nonPadded.toString() : nonPadded.toString();
+	};
+
+	var d = new Date(parseInt(currentTime,10));
+	return(d.getFullYear() + "_" + (d.getMonth()+1) + "_" + d.getDate() + "_" + pad(d.getHours()) + pad(d.getMinutes()));
+};
+
+// This function converts the job ID (which is epoch time) to a readable date and time.
 millisToTimestamp = function(millis)
 {
 	//pad is a function that will convert a one place-holder value interger to two. (Ex. 0 --> 00, 1 --> 01)

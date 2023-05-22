@@ -1,4 +1,4 @@
-// Copyright (c) 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021 University of Texas MD Anderson Cancer Center
+// Copyright (c) 2011-2022 University of Texas MD Anderson Cancer Center
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
 //
@@ -8,7 +8,6 @@
 //
 // MD Anderson Cancer Center Bioinformatics on GitHub <https://github.com/MD-Anderson-Bioinformatics>
 // MD Anderson Cancer Center Bioinformatics at MDA <https://www.mdanderson.org/research/departments-labs-institutes/departments-divisions/bioinformatics-and-computational-biology.html>
-
 package edu.mda.bcb.mba.status;
 
 import com.google.gson.Gson;
@@ -17,13 +16,13 @@ import edu.mda.bcb.mba.authorization.Authorization;
 import edu.mda.bcb.mba.utils.MBAUtils;
 import edu.mda.bcb.mba.servlets.MBAproperties;
 import edu.mda.bcb.mba.servlets.UploadBatch;
+import edu.mda.bcb.mba.utils.PropertiesEsc;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.util.Properties;
 import java.util.TreeSet;
 import javax.servlet.http.HttpServletRequest;
 import java.io.StringWriter;
@@ -42,14 +41,14 @@ import org.apache.commons.text.StringEscapeUtils;
 public class JobStatus
 {
 
-	static private Properties M_JOB_STATUS = null;
+	static private PropertiesEsc M_JOB_STATUS = null;
 
 	static public void readProperties() throws FileNotFoundException, IOException
 	{
 		// TODO: this reads the job file every time--change to only load when needed if this is too slow
 		//if (null==M_JOB_STATUS)
 		{
-			M_JOB_STATUS = new Properties();
+			M_JOB_STATUS = new PropertiesEsc();
 			File myfile = new File(MBAUtils.M_PROPS, "job.properties");
 			if (myfile.exists())
 			{
@@ -72,6 +71,51 @@ public class JobStatus
 		}
 	}
 
+	synchronized static public void buildJobStatusList(HttpServlet theServlet, StringBuffer theBuffer, String theUsername, TreeSet<String> theRoles) throws IOException
+	{
+		GsonBuilder builder = new GsonBuilder();
+		Gson gson = builder.create();
+		boolean wrote = false;
+		readProperties();
+		if (M_JOB_STATUS.size() > 0)
+		{
+			TreeSet<String> sortedList = new TreeSet<>();
+			for (Object foo : M_JOB_STATUS.keySet())
+			{
+				// this ensures job info entries don't get returned in list
+				if (!foo.toString().contains("."))
+				{
+					sortedList.add(foo.toString());
+				}
+			}
+			for (String jobid : sortedList)
+			{
+				if (Authorization.userHasAccess(theServlet, jobid, theUsername, theRoles))
+				{
+					if (false == wrote)
+					{
+						wrote = true;
+					}
+					else
+					{
+						theBuffer.append(",");
+					}
+					JOB_STATUS status = JOB_STATUS.StringToEnum(M_JOB_STATUS.getProperty(jobid));
+					theBuffer.append("{");
+					theBuffer.append("\n\"jobid\":\"" + jobid + "\",");
+					theBuffer.append("\n\"status\":\"" + status.mStatus + "\",");
+					theBuffer.append("\n\"message\":\"" + status.mReport + "\",");
+					theBuffer.append("\n\"tag\":\"" + StringEscapeUtils.escapeJson(JobStatus.M_JOB_STATUS.getProperty(jobid + ".tag", "")) + "\",");
+					theBuffer.append("\n\"owner\":\"" + StringEscapeUtils.escapeJson(JobStatus.M_JOB_STATUS.getProperty(jobid + ".owner", "")) + "\",");
+					theBuffer.append("\n\"email\":\"" + StringEscapeUtils.escapeJson(JobStatus.M_JOB_STATUS.getProperty(jobid + ".email", "")) + "\",");
+					theBuffer.append("\n\"authRoles\":" + gson.toJson(Authorization.getJobRoles(theServlet, jobid)) + ",");
+					theBuffer.append("\n\"authUsers\":" + gson.toJson(Authorization.getJobUsers(theServlet, jobid)));
+					theBuffer.append("\n}\n");
+				}
+			}
+		}
+	}
+
 	synchronized static public void setJobStatus(String theJob, JOB_STATUS theStatus, HttpServletRequest theRequest, HttpServlet theServlet)
 			throws FileNotFoundException, IOException, Exception
 	{
@@ -81,7 +125,7 @@ public class JobStatus
 		}
 		readProperties();
 		JOB_STATUS status1 = getJobStatus(theJob);
-		if ((status1==JOB_STATUS.NEWJOB_PRIMARY_MW_WAIT)&&(theStatus==JOB_STATUS.NEWJOB_PRIMARY_DONE))
+		if ((status1 == JOB_STATUS.NEWJOB_PRIMARY_MW_WAIT) && (theStatus == JOB_STATUS.NEWJOB_PRIMARY_DONE))
 		{
 			File jobDir = new File(MBAUtils.M_OUTPUT, theJob);
 			File zipDataDir = new File(jobDir, "ZIP-DATA");
@@ -170,13 +214,13 @@ public class JobStatus
 
 	static public void checkJobId(String theJobId) throws Exception
 	{
-		ArrayList<String> jobs = new ArrayList<>( Arrays.asList( JobStatus.getJobList() ));
+		ArrayList<String> jobs = new ArrayList<>(Arrays.asList(JobStatus.getJobList()));
 		if (!jobs.contains(theJobId))
 		{
 			throw new Exception("Job not found");
 		}
 	}
-	
+
 	synchronized static public String[] getJobList() throws IOException
 	{
 		// NOTE: This function only returns the JobId, Status entries of job.properties.
@@ -217,12 +261,15 @@ public class JobStatus
 						jobId = (String) strObj;
 						setJobStatus(jobId, theNewStatusA, theRequest, theServlet);
 					}
-					else if (null != theOldStatusB)
+					else
 					{
-						if (theOldStatusB.mStatus.equals(M_JOB_STATUS.getProperty((String) strObj)))
+						if (null != theOldStatusB)
 						{
-							jobId = (String) strObj;
-							setJobStatus(jobId, theNewStatusB, theRequest, theServlet);
+							if (theOldStatusB.mStatus.equals(M_JOB_STATUS.getProperty((String) strObj)))
+							{
+								jobId = (String) strObj;
+								setJobStatus(jobId, theNewStatusB, theRequest, theServlet);
+							}
 						}
 					}
 				}
@@ -267,9 +314,9 @@ public class JobStatus
 		out.append("\n\"jobid\":\"" + theJob + "\",");
 		out.append("\n\"status\":\"" + status.mStatus + "\",");
 		out.append("\n\"message\":\"" + status.mReport + "\",");
-		out.append("\n\"tag\":\"" + JobStatus.M_JOB_STATUS.getProperty(theJob + ".tag", "") + "\",");
-		out.append("\n\"owner\":\"" + JobStatus.M_JOB_STATUS.getProperty(theJob + ".owner", "") + "\",");
-		out.append("\n\"email\":\"" + JobStatus.M_JOB_STATUS.getProperty(theJob + ".email", "") + "\",");
+		out.append("\n\"tag\":\"" + StringEscapeUtils.escapeJson(JobStatus.M_JOB_STATUS.getProperty(theJob + ".tag", "")) + "\",");
+		out.append("\n\"owner\":\"" + StringEscapeUtils.escapeJson(JobStatus.M_JOB_STATUS.getProperty(theJob + ".owner", "")) + "\",");
+		out.append("\n\"email\":\"" + StringEscapeUtils.escapeJson(JobStatus.M_JOB_STATUS.getProperty(theJob + ".email", "")) + "\",");
 		out.append("\n\"authRoles\":" + gson.toJson(Authorization.getJobRoles(theServlet, theJob)) + ",");
 		out.append("\n\"authUsers\":" + gson.toJson(Authorization.getJobUsers(theServlet, theJob)));
 		if (includeTail)
@@ -315,20 +362,26 @@ public class JobStatus
 				}
 			}
 		}
-		else if (theStatus.mStatus.startsWith("MBATCHCONFIG_"))
+		else
 		{
-			tailMe = new File(new File(MBAUtils.M_OUTPUT, theJob), "MBatchConfig_err.log");
-			if (!tailMe.exists())
+			if (theStatus.mStatus.startsWith("MBATCHCONFIG_"))
 			{
-				tailMe = null;
+				tailMe = new File(new File(MBAUtils.M_OUTPUT, theJob), "MBatchConfig_err.log");
+				if (!tailMe.exists())
+				{
+					tailMe = null;
+				}
 			}
-		}
-		else if (theStatus.mStatus.startsWith("MBATCHRUN_"))
-		{
-			tailMe = new File(new File(MBAUtils.M_OUTPUT, theJob), "log.rLog");
-			if (!tailMe.exists())
+			else
 			{
-				tailMe = null;
+				if (theStatus.mStatus.startsWith("MBATCHRUN_"))
+				{
+					tailMe = new File(new File(MBAUtils.M_OUTPUT, theJob), "log.rLog");
+					if (!tailMe.exists())
+					{
+						tailMe = null;
+					}
+				}
 			}
 		}
 		// add finding log based on data mbang used
@@ -369,14 +422,14 @@ public class JobStatus
 		}
 		return results;
 	}
-	
+
 	public static String getFirstDir(File theDir)
 	{
 		String name = null;
 		if (theDir.exists())
 		{
 			File[] ls = theDir.listFiles(File::isDirectory);
-			if (null!=ls)
+			if (null != ls)
 			{
 				name = ls[0].getName();
 			}
@@ -396,7 +449,7 @@ public class JobStatus
 		{
 			// check for PCA directory and batch dir
 			level3 = getFirstDir(new File(new File(theResultDir, level1), level2));
-			if (null==level3)
+			if (null == level3)
 			{
 				// if no PCA, redo level 2 and 3
 				level2 = getFirstDir(new File(theResultDir, level1));
@@ -405,7 +458,7 @@ public class JobStatus
 			level4 = getFirstDir(new File(new File(new File(theResultDir, level1), level2), level3));
 			level5 = getFirstDir(new File(new File(new File(new File(theResultDir, level1), level2), level3), level4));
 		}
-		catch(Exception exp)
+		catch (Exception exp)
 		{
 			// TODO: replace eating exception with new version of default
 			level2 = null;
@@ -415,19 +468,19 @@ public class JobStatus
 		}
 		// build return dir
 		String ret = "";
-		if (null!=level1)
+		if (null != level1)
 		{
 			ret = ret + level1 + "/";
-			if (null!=level2)
+			if (null != level2)
 			{
 				ret = ret + level2 + "/";
-				if (null!=level3)
+				if (null != level3)
 				{
 					ret = ret + level3 + "/";
-					if (null!=level4)
+					if (null != level4)
 					{
 						ret = ret + level4 + "/";
-						if (null!=level5)
+						if (null != level5)
 						{
 							ret = ret + level5 + "/";
 						}
@@ -438,28 +491,49 @@ public class JobStatus
 		return ret;
 	}
 
+	static public File findNewestFile(File theDir, String thePostfix)
+	{
+		File newest = null;
+		TreeSet<File> fileList = new TreeSet<>();
+		File[] tmp = theDir.listFiles();
+		if (null != tmp)
+		{
+			for (File nf : tmp)
+			{
+				if (nf.isFile())
+				{
+					if (nf.getName().endsWith(thePostfix))
+					{
+						fileList.add(nf);
+					}
+				}
+			}
+			newest = fileList.descendingSet().first();
+		}
+		return newest;
+	}
+
 	public static void copyToWebsite(String theJob, HttpServletRequest theRequest, HttpServlet theServlet) throws IOException
 	{
 		File jobDir = new File(MBAUtils.M_OUTPUT, theJob);
-		File resultDir = new File(jobDir, "MBatch");
-		theServlet.log("resultDir=" + resultDir);
 		theServlet.log("theJob=" + theJob);
-		String myPath = getDefaultDir(resultDir, theJob);
-		theServlet.log("myPath=" + myPath);
+		theServlet.log("jobDir=" + jobDir);
 		ArrayList<String> websiteTxt = new ArrayList<>();
 		// links do not work, copy instead
-		File zipFile = new File(jobDir, theJob + "-results.zip");
-		File webFile = new File(MBAUtils.M_WEBSITE, theJob + "-results.zip");
-		Files.copy(zipFile.toPath(), webFile.toPath());
-		File zipFileData = new File(jobDir, theJob + "-data.zip");
-		File webFileData = new File(MBAUtils.M_WEBSITE, theJob + "-data.zip");
-		Files.copy(zipFileData.toPath(), webFileData.toPath());
+		File resultsZip = findNewestFile(jobDir, "-results.zip");
+		File dataZip = findNewestFile(jobDir, "-data.zip");
+		File webResults = new File(MBAUtils.M_WEBSITE, theJob + "-results.zip");
+		File webData = new File(MBAUtils.M_WEBSITE, theJob + "-data.zip");
+		theServlet.log("copyToWebsite from resultsZip=" + resultsZip + " to webResults=" + webResults);
+		Files.copy(resultsZip.toPath(), webResults.toPath());
+		theServlet.log("copyToWebsite from dataZip=" + dataZip + " to webData=" + webData);
+		Files.copy(dataZip.toPath(), webData.toPath());
 		//File webLink = new File(MBAUtils.M_WEBSITE, theJob + ".zip");
 		//Files.createSymbolicLink(webLink.toPath(), zipFile.toPath());
 		//
 		// websiteTxt first line, path to directory
 		//
-		websiteTxt.add(myPath);
+		websiteTxt.add(jobDir.toString());
 		//
 		// websiteTxt second line, URL to JOB
 		//

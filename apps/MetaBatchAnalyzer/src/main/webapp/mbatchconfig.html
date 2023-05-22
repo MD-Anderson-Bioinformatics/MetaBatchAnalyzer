@@ -7,6 +7,67 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 	<head>
 		<title>MetaBatch Analyzer</title>
 		<meta charset="UTF-8">
+		<!-- Global site tag (gtag.js) - Google Analytics -->
+		<script type="text/javascript">
+			/* Google Analytics start */
+			// based on https://rankmath.com/blog/google-analytics-gdpr/
+			const cyrb53 = function(str, seed = 0)
+			{
+				let h1 = 0xdeadbeef ^ seed,
+					h2 = 0x41c6ce57 ^ seed;
+				for (let i = 0, ch; i < str.length; i++)
+				{
+					ch = str.charCodeAt(i);
+					h1 = Math.imul(h1 ^ ch, 2654435761);
+					h2 = Math.imul(h2 ^ ch, 1597334677);
+				}
+				h1 = Math.imul(h1 ^ h1 >>> 16, 2246822507) ^ Math.imul(h2 ^ h2 >>> 13, 3266489909);
+				h2 = Math.imul(h2 ^ h2 >>> 16, 2246822507) ^ Math.imul(h1 ^ h1 >>> 13, 3266489909);
+				return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+			};
+
+			const getNavigatorId = function() 
+			{
+				let notAvailable = "unknown";
+				let ua = navigator.userAgent || notAvailable;
+				let lang = window.navigator.language || window.navigator.userLanguage || window.navigator.browserLanguage || window.navigator.systemLanguage || not_available;
+				let colors = window.screen.colorDepth || notAvailable;
+				let memKey = window.navigator.deviceMemory || notAvailable;
+				let pixels = window.devicePixelRatio || notAvailable;
+				let res = [window.screen.width, window.screen.height].sort().reverse().join("x");
+				return ua + ";" + lang + ";" + colors + ";" + memKey + ";" + pixels + ";" + res;
+			};
+
+			let validityInterval = Math.round (new Date() / 1000 / 3600 / 24 / 7);
+			let clientIDSource = window.location.host + ";" + getNavigatorId() + ";" + validityInterval;
+
+			window.clientIDHashed = cyrb53(clientIDSource).toString(16);
+			(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+			(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+			m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+			})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+			ga('create', 'UA-33425717-2', 
+			{
+				'storage': 'none',
+				'clientId': clientIDHashed
+			});
+			ga('set', 'anonymizeIp', true);
+			ga('send', 'pageview');
+			/* Google Analytics end */
+
+			function sendGAEvent(theEvent, theCategory, theLabel)
+			{
+				/* Google Analytics start */
+				ga('send', 
+				{
+					hitType: 'event',
+					eventCategory: theEvent,
+					eventAction: theCategory,
+					eventLabel: theLabel
+				});
+				/* Google Analytics end */
+			};
+		</script>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<script type="text/javascript" src="jquery-1.11.1.min.js"></script>
 		<script type="text/javascript" src="knockout-3.2.0.js"></script>
@@ -67,6 +128,10 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				self.propMutBatchThreads = ko.observable(null);
 				self.propMutBatchPvalueCutoff = ko.observable(null);
 				self.propMutBatchZscoreCutoff = ko.observable(null);
+				// Not from server, set default to "now"
+				const nowTS = getNowTimestamp();
+				self.propDataVersion = ko.observable(nowTS);
+				self.propTestVersion = ko.observable(nowTS);
 				//
 				self.propMaxDscThreads = ko.observable();
 				self.propMinBoxplotGeneCount = ko.observable(null);
@@ -200,6 +265,10 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				//	}
 				//}
 
+				// versions
+				self.configDataVersion = ko.observable(self.propDataVersion());
+				self.configTestVersion = ko.observable(self.propTestVersion());
+
 				// batch type that contains sample ids (we don't always know what that will be called for user data)
 				self.sampleidBatchType = ko.observable('Sample');
 
@@ -222,6 +291,8 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 					self.sampleidBatchType('Sample');
 					self.batchTypesForMBatch([]);
 					self.mbatchCDPFlag(true);
+					self.configDataVersion(self.propDataVersion());
+					self.configTestVersion(self.propTestVersion());
 				};
 
 				// *************************************************************
@@ -322,18 +393,16 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				//// Step 2b:
 				////////////////////////////////////////////////////////////////
 
-				self.mbatchMethodSelectValue = ko.observable("MBatch Continuous");
-				self.mbatchMethodSelectOptions = ko.observableArray(["MBatch Continuous", "MBatch Discrete", "MutBatch"]);
+				self.mbatchMethodSelectValue = ko.observable("MBatch");
+				self.mbatchMethodSelectOptions = ko.observableArray(["MBatch", "MutBatch"]);
 
-				self.isReadyAndMBatchContinuous = ko.computed(function ()
+				//TDC//self.isReadyAndMBatchContinuous = ko.computed(function ()
+				self.isReadyAndMBatch = ko.computed(function ()
 				{
-					return ( ("MBatch Continuous"===self.mbatchMethodSelectValue()) && (self.batchTypesForMBatch().length>0) );
+					return ( ("MBatch"===self.mbatchMethodSelectValue()) && (self.batchTypesForMBatch().length>0) );
 				});
 
-				self.isReadyAndMBatchDiscrete = ko.computed(function ()
-				{
-					return ( ("MBatch Discrete"===self.mbatchMethodSelectValue()) && (self.batchTypesForMBatch().length>0) );
-				});
+				//TDC//self.isReadyAndMBatchDiscrete = ko.computed(function ()
 				
 				self.isReadyAndMutBatch = ko.computed(function ()
 				{
@@ -341,13 +410,38 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				});
 
 				////////////////////////////////////////////////////////////////
-				//// Step 3: MBatch Discrete and MutBatch
+				//// Step 3: MBatch and MutBatch shared settings
 				////////////////////////////////////////////////////////////////
 				
 				self.mutBatchMem = ko.observable(self.propMutBatchMem());
 				self.mutBatchThreads = ko.observable(self.propMutBatchThreads());
+				self.mutBatchThreads.extend(
+				{
+					required: { message: 'Must provide a value' },
+					pattern: {
+						message: 'Must be an integer >=1 with less than 10 characters and no leading zeros.',
+						params: '^(1|([1-9])|([1-9][0-9]+)){1,10}$'
+					}
+				});
 				self.mutBatchPvalueCutoff = ko.observable(self.propMutBatchPvalueCutoff());
+				self.mutBatchPvalueCutoff.extend(
+				{
+					required: { message: 'Must provide a value' },
+					pattern: {
+						message: 'Must be an number between 0.0 and 1.0 inclusive and less than 10 characters.',
+						params: '^(1|0|(\\\.[0-9]*)|(0\\\.[0-9]*)){1,10}$'
+					}
+				});
+
 				self.mutBatchZscoreCutoff = ko.observable(self.propMutBatchZscoreCutoff());
+				self.mutBatchZscoreCutoff.extend(
+				{
+					required: { message: 'Must provide a value' },
+					pattern: {
+						message: 'Must be a number between 0.00 and 10.00 inclusive and less than 10 characters.',
+						params: '^(0|([0-9]\\\.[0-9]*)|(\\\.[0-9]*)|([1-9][0-9]*)){1,10}$'
+					}
+				});
 
 				////////////////////////////////////////////////////////////////
 				//// Step 3: Select a Filter
@@ -361,6 +455,14 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				// populate from config
 				self.filterMinAllowed = ko.observable(self.propFilterMinAllowed());
 				self.filterMaxValue = ko.observable(self.filterMaxAllowed());
+				self.filterMaxValue.extend(
+				{
+					required: { message: 'Must provide a value' },
+					pattern: {
+						message: 'Must be an integer with less than 10 characters and no leading zeros.',
+						params: '^(0|([1-9])|([1-9][0-9]+))$'
+					}
+				});
 				// batch type on which to filter
 				// use undefined so we can use an array of values instead of building HTML options
 				self.filteringBatchType = ko.observable(undefined);
@@ -392,7 +494,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				}, self);
 
 				
-				self.resetDefaultStep3DM = function ()
+				self.resetDefaultStep3 = function ()
 				{
 					self.mutBatchMem(self.propMutBatchMem());
 					self.mutBatchThreads(self.propMutBatchThreads());
@@ -400,7 +502,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 					self.mutBatchZscoreCutoff(self.propMutBatchZscoreCutoff());
 				};
 				
-				self.resetDefaultStep3 = function ()
+				self.resetDefaultStep4 = function ()
 				{
 					self.filterMaxAllowed(self.propFilterMaxAllowed());
 					self.filterLogTransformFlag(self.propFilterLogTransform());
@@ -435,6 +537,14 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				self.selectedBatchToCorrect = ko.observable("none");
 				self.selectedCorrection = ko.observable(self.availableCorrections()[0].id);
 				self.selectedCorrectionMinBatchSize = ko.observable(1);
+				self.selectedCorrectionMinBatchSize.extend(
+				{
+					required: { message: 'Must provide a value' },
+					pattern: {
+						message: 'Must be an integer with less than 10 characters and no leading zeros.',
+						params: '^(0|([1-9])|([1-9][0-9]+))$'
+					}
+				});
 
 				//// RBN/EBNPlus Arguments
 
@@ -456,7 +566,23 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				self.selectedEBNPlus_GroupId1 = ko.observable(self.EBNPlus_GroupId1());
 				self.selectedEBNPlus_GroupId2 = ko.observable(self.EBNPlus_GroupId2());
 				self.selectedEBNPlus_Seed = ko.observable(self.EBNPlus_Seed());
+				self.selectedEBNPlus_Seed.extend(
+				{
+					required: { message: 'Must provide a value' },
+					pattern: {
+						message: 'Must be an integer with less than 10 characters and no leading zeros.',
+						params: '^(0|([1-9])|([1-9][0-9]+))$'
+					}
+				});
 				self.selectedEBNPlus_MinSamples = ko.observable(self.EBNPlus_MinSamples());
+				self.selectedEBNPlus_MinSamples.extend(
+				{
+					required: { message: 'Must provide a value' },
+					pattern: {
+						message: 'Must be an integer with less than 10 characters and no leading zeros.',
+						params: '^(0|([1-9])|([1-9][0-9]+))$'
+					}
+				});
 				self.selectedRBN_InvariantReps = ko.observableArray([]);
 				self.selectedRBN_VariantReps = ko.observableArray([]);
 
@@ -651,13 +777,13 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 					}
 				});
 
-				self.resetDefaultStep4 = function ()
+				self.resetDefaultStep5 = function ()
 				{
-					console.log("resetDefaultStep4");
+					console.log("resetDefaultStep5");
 					self.selectedBatchToCorrect("none");
 					self.selectedCorrection(self.availableCorrections()[0].id);
 					self.selectedCorrectionMinBatchSize(1);
-
+					
 					self.RBN_InvariantId(self.propRBN_InvariantId());
 					self.RBN_VariantId(self.propRBN_VariantId());
 					self.RBN_Matched(self.propRBN_Matched());
@@ -685,14 +811,57 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				self.maxDscThreads = ko.observable(self.propMaxDscThreads());
 				// populate from config file
 				self.maxDscGeneCount = ko.observable(self.propMaxDscGeneCount());
+				self.maxDscGeneCount.extend({ required: { message: 'Must provide a value' }});
 				self.maxDscPermutations = ko.observable(self.propMaxDscPermutations());
+				self.maxDscPermutations.extend({ required: { message: 'Must provide a value' }});
 				self.selectedDSCPermutations = ko.observable(2000);
-				self.selectedDSCThreads = ko.observable(self.maxDscThreads());
-				self.selectedDSCMinBatchSize = ko.observable(5);
-				self.selectedDSCSeed = ko.observable(314);
-				self.selectedDSCMaxGeneCount = ko.observable(self.maxDscGeneCount());
+				self.selectedDSCPermutations.extend(
+				{
+					required: { message: 'Must provide a value' },
+					pattern: {
+						message: 'Must be an integer with less than 10 characters and no leading zeros.',
+						params: '^(0|([1-9])|([1-9][0-9]+))$'
+					}
+				});
 
-				self.resetDefaultStep5 = function ()
+				self.selectedDSCThreads = ko.observable(self.maxDscThreads());
+				self.selectedDSCThreads.extend(
+				{
+					required: { message: 'Must provide a value' },
+					pattern: {
+						message: 'Must be an integer with less than 10 characters and no leading zeros.',
+						params: '^(0|([1-9])|([1-9][0-9]+))$'
+					}
+				});
+				self.selectedDSCMinBatchSize = ko.observable(5);
+				self.selectedDSCMinBatchSize.extend(
+				{
+					required: { message: 'Must provide a value' },
+					pattern: {
+						message: 'Must be an integer with less than 10 characters and no leading zeros.',
+						params: '^(0|([1-9])|([1-9][0-9]+))$'
+					}
+				});
+				self.selectedDSCSeed = ko.observable(314);
+				self.selectedDSCSeed.extend(
+				{
+					required: { message: 'Must provide a value' },
+					pattern: {
+						message: 'Must be an integer with less than 10 characters and no leading zeros.',
+						params: '^(0|([1-9])|([1-9][0-9]+))$'
+					}
+				});
+				self.selectedDSCMaxGeneCount = ko.observable(self.maxDscGeneCount());
+				self.selectedDSCMaxGeneCount.extend(
+				{
+					required: { message: 'Must provide a value' },
+					pattern: {
+						message: 'Must be an integer with less than 10 characters and no leading zeros.',
+						params: '^(0|([1-9])|([1-9][0-9]+))$'
+					}
+				});
+
+				self.resetDefaultStep6 = function ()
 				{
 					self.selectedDSCPermutations(2000);
 					self.selectedDSCThreads(self.maxDscThreads());
@@ -709,8 +878,18 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				// populate from config file
 				self.maxBoxplotGeneCount = ko.observable(self.propMaxBoxplotGeneCount());
 				self.selectedBoxplotMaxGeneCount = ko.observable(self.maxBoxplotGeneCount());
+				self.selectedBoxplotMaxGeneCount.extend(
+				{
+					required: { message: 'Must provide a value' },
+					pattern: {
+						message: 'Must be an integer with less than 10 characters and no leading zeros.',
+						params: '^(0|([1-9])|([1-9][0-9]+)){1,10}$'
+					}
+				});
 
-				self.resetDefaultStep6 = function ()
+				self.selectedBoxplotMaxGeneCount.extend({ required: { message: 'Must provide a value' }});
+
+				self.resetDefaultStep7 = function ()
 				{
 					self.selectedBoxplotMaxGeneCount(self.maxBoxplotGeneCount());
 				};
@@ -725,7 +904,22 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				self.ngchmRowType = ko.observable(self.propNgchmRowType());
 				self.ngchmColumnType = ko.observable(self.propNgchmColumnType());
 				
-				self.resetDefaultStep7 = function ()
+				self.ngchmRowType.extend({
+					pattern: {
+						message: 'Must be an alphanumeric less than 512 characters. (Underscores, dots, and pipes are permitted).',
+						params: '^[A-Za-z0-9_|.]{0,512}.$'
+					}
+				});
+				
+				self.ngchmColumnType.extend({
+					pattern: {
+						message: 'Must be an alphanumeric less than 512 characters. (Underscores, dots, and pipes are permitted).',
+						params: '^[A-Za-z0-9_|.]{0,512}.$'
+					}
+				});
+
+				
+				self.resetDefaultStep8 = function ()
 				{
 					self.selectedNgchmFlag(true);
 				};
@@ -769,11 +963,11 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 							action: theAction,
 							jobId: self.jobId(),
 							configDesc: self.mbatchMethodSelectValue(),
+							DataVersion: "DATA_" + self.configDataVersion(),
+							TestVersion: "TEST_" + self.configTestVersion(),
 							sampleidBatchType: self.sampleidBatchType(),
 							batchTypesForMBatchArray: (self.batchTypesForMBatch().length === 0) ? 'null' : self.batchTypesForMBatch().toString(),
-							// mutbatch and discrete settings
-							// "MBatch Continuous", "MBatch Discrete", "MutBatch"
-							mutBatchFlag: ("MBatch Discrete"===self.mbatchMethodSelectValue())?"TRUE":"FALSE",
+							// "MBatch", "MutBatch"
 							mutationsMutbatchFlag: ("MutBatch"===self.mbatchMethodSelectValue())?"TRUE":"FALSE",
 							mutBatchMem: self.mutBatchMem(),
 							mutBatchThreads: self.mutBatchThreads(),
@@ -784,7 +978,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 							filterLogTransformFlag: self.filterLogTransformFlag(),
 							filteringBatchType: (undefined === self.filteringBatchType()) ? 'null' : self.filteringBatchType(),
 							filteringBatchesArray: (undefined === self.filteringBatchType()) || (self.filteringBatches().length === 0) ? 'null' : self.filteringBatches().toString(),
-							CDP_Flag: ("MBatch Continuous"===self.mbatchMethodSelectValue())?self.mbatchCDPFlag():"FALSE",
+							CDP_Flag: ("MBatch"===self.mbatchMethodSelectValue())?self.mbatchCDPFlag():"FALSE",
 							selectedBatchToCorrect: self.selectedBatchToCorrect(),
 							selectedCorrection: ('none' === self.selectedCorrection()) ? 'null' : self.selectedCorrection(),
 							selectedCorrectionMinBatchSize: self.selectedCorrectionMinBatchSize(),
@@ -794,7 +988,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 							selectedDSCSeed: self.selectedDSCSeed(),
 							selectedDSCMaxGeneCount: self.selectedDSCMaxGeneCount(),
 							selectedBoxplotMaxGeneCount: self.selectedBoxplotMaxGeneCount(),
-							selectedNgchmFlag: ("MBatch Continuous"===self.mbatchMethodSelectValue())?self.selectedNgchmFlag():"FALSE",
+							selectedNgchmFlag: ("MBatch"===self.mbatchMethodSelectValue())?self.selectedNgchmFlag():"FALSE",
 							ngchmRowType: self.ngchmRowType(),
 							ngchmColumnType: self.ngchmColumnType(),
 							// Some of these data arguments have inline conditional statements which make sure
@@ -831,8 +1025,10 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 							}
 							else
 							{
-								self.mbatchMethodSelectValue("MBatch Continuous");
+								self.mbatchMethodSelectValue("MBatch");
 							}
+							self.configDataVersion(theJson.DataVersion.substring(5));
+							self.configTestVersion(theJson.TestVersion.substring(5));
 							self.sampleidBatchType(theJson.sampleidBatchType);
 							self.selectedCorrection(('null' === theJson.selectedCorrection) ? 'none' : theJson.selectedCorrection);
 							self.batchTypesForMBatch(('null' === theJson.batchTypesForMBatchArray) ? [] : theJson.batchTypesForMBatchArray);
@@ -887,6 +1083,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 					self.resetDefaultStep5();
 					self.resetDefaultStep6();
 					self.resetDefaultStep7();
+					self.resetDefaultStep8();
 				};
 
 				self.doMBatchRun = function ()
@@ -975,9 +1172,31 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 			<!-- *************************************************************** -->
 			<!-- **** Step 2a: Select Batches *********************************** -->
 			<!-- *************************************************************** -->
-			<strong>Step 2a: Select Batches</strong>
+			<strong>Step 2a: Select Batches and Set Versions</strong>
 			<div style="float: right;">
 				<button data-bind="click: function(data, event) { $root.resetDefaultStep2(); }" class="buttons">Reset Defaults</button>
+			</div>
+			<div class="marginTop10px">
+				<table>
+					<tr>
+						<td>Data Version:</td>
+						<td>
+							DATA_<input data-bind="value: $root.configDataVersion" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_]{1,16}" maxlength="15" />
+							<img id="tooltipImage_DataVersion" title="Data Version" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
+							<span id="tooltipContent_DataVersion" class="tooltiptext">Data Version:<br><br>
+								Usually a timestamp added to the end of DATA_ to indicate version of the data used.</span>
+						</td>
+					</tr>
+					<tr>
+						<td>Test Version:</td>
+						<td>
+							TEST_<input data-bind="value: $root.configTestVersion" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_]{1,16}" maxlength="15" />
+							<img id="tooltipImage_TestVersion" title="Test Version" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
+							<span id="tooltipContent_TestVersion" class="tooltiptext">Test Version:<br><br>
+								Usually a timestamp added to the end of TEST_ to indicate version of the analysis (test) used.</span>
+						</td>
+					</tr>
+				</table>
 			</div>
 			<div class="marginLeft10px"><!--data-bind="visible: !$root.isUploadMBatchConfigChecked()"-->
 				<div>Select Sample Identifier (Select Sample Id Batch Type):
@@ -1041,21 +1260,21 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 							 data-theme="myTooltipTheme" class="guiIconDimensions" alt="More Info">
 						<span id="tooltipContent_mbatchMethodSelect" class="tooltiptext">
 							MBatch Methods <br><br>
-							Run MBatch Continuous (normal MBatch for continuous data), or MBatch Discrete (for discrete data), or MutBatch (for comparing multiple MAF files).
+							Run MBatch (normal MBatch for continuous or discrete data) or MutBatch (for comparing multiple MAF files).
 						</span>
 					</span>
 				</div>
 			</div>
 		</div>
 
-		<div data-bind="visible: $root.isReadyAndMBatchDiscrete()||$root.isReadyAndMutBatch()">
+		<div data-bind="visible: $root.isReadyAndMBatch()||$root.isReadyAndMutBatch()">
 			<!-- *************************************************************** -->
 			<!-- **** Step 3: Select Discrete/MutBatch Options ************************* -->
 			<!-- *************************************************************** -->
 			<div class="roundedBox">
 				<strong>Step 3: Select Discrete/MutBatch Options</strong>
 				<div style="float: right;">
-					<button data-bind="click: function(data, event) { $root.resetDefaultStep3DM(); }" class="buttons">Reset Defaults</button>
+					<button data-bind="click: function(data, event) { $root.resetDefaultStep3(); }" class="buttons">Reset Defaults</button>
 				</div>
 				<div>
 					<table class="mbatchconfigInputTable">
@@ -1087,7 +1306,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 								Number of Discrete/MutBatch Threads (1-<span data-bind="text: $root.maxDscThreads"></span>):
 							</td>
 							<td>
-								<input class="smallInputAndSelect" type="number" min="1" data-bind="value: $root.mutBatchThreads, attr: { max: $root.maxDscThreads }" />
+								<input class="smallInputAndSelect" data-bind="value: $root.mutBatchThreads, attr: { max: $root.maxDscThreads }" />
 								<span class="tooltip">
 									<img id="tooltipImage_DiscreteMutBatchThreads" title="Number of Discrete/MutBatch Threads" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
 									<span id="tooltipContent_DiscreteMutBatchThreads" class="tooltiptext">Number of Discrete/MutBatch Threads:<br><br>
@@ -1101,7 +1320,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 								P-Value Cutoff for Significance:
 							</td>
 							<td>
-								<input class="smallInputAndSelect" type="number" step="0.00001" data-bind="value: $root.mutBatchPvalueCutoff" />
+								<input class="smallInputAndSelect" data-bind="value: $root.mutBatchPvalueCutoff"/>
 								<span class="tooltip">
 									<img id="tooltipImage_MutBatchPvalueCutoff" title="Number of Discrete/MutBatch Threads" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
 									<span id="tooltipContent_MutBatchPvalueCutoff" class="tooltiptext">P-Value Cutoff for Significance:<br><br>
@@ -1115,7 +1334,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 								Z-Score Cutoff for Significance:
 							</td>
 							<td>
-								<input class="smallInputAndSelect" type="number" step="0.01" data-bind="value: $root.mutBatchZscoreCutoff" />
+								<input class="smallInputAndSelect" data-bind="value: $root.mutBatchZscoreCutoff" />
 								<span class="tooltip">
 									<img id="tooltipImage_MutBatchZscoreCutoff" title="Z-Score Cutoff for Significance" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
 									<span id="tooltipContent_MutBatchZscoreCutoff" class="tooltiptext">Z-Score Cutoff for Significance:<br><br>
@@ -1129,14 +1348,14 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 			</div>
 		</div>
 		
-		<div data-bind="visible: $root.isReadyAndMBatchContinuous()">
+		<div data-bind="visible: $root.isReadyAndMBatch()">
 			<!-- *************************************************************** -->
-			<!-- **** Step 3: Select Filtering Options ************************* -->
+			<!-- **** Step 4: Select Filtering Options ************************* -->
 			<!-- *************************************************************** -->
 			<div class="roundedBox">
-				<strong>Step 3: Select Filtering Options</strong>
+				<strong>Step 4: Select Filtering Options</strong>
 				<div style="float: right;">
-					<button data-bind="click: function(data, event) { $root.resetDefaultStep3(); }" class="buttons">Reset Defaults</button>
+					<button data-bind="click: function(data, event) { $root.resetDefaultStep4(); }" class="buttons">Reset Defaults</button>
 				</div>
 				<div class="marginLeft10px">Log Transform Data:
 					<input type="checkbox" data-bind="checked: $root.filterLogTransformFlag" />
@@ -1180,7 +1399,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				<div class="marginLeft10px">Auto-Filter to Maximum Number of Values:
 					<div class="marginLeft10px"> 
 						Max Number of Values: 
-						<input type="number" data-bind="value: $root.filterMaxValue, attr: {max: $root.filterMaxAllowed, min: $root.filterMinAllowed }" />
+						<input data-bind="value: $root.filterMaxValue, attr: {max: $root.filterMaxAllowed, min: $root.filterMinAllowed }"/>
 						<div class="tooltip inlineblock">
 							<img id="tooltipImage_SelectFiltering" title="Select Filtering Options" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
 							<div id="tooltipContent_SelectFiltering" class="tooltiptext">Maximum Number of Values:<br><br>
@@ -1232,12 +1451,12 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				</div>
 			</div>
 			<!-- *************************************************************** --> 
-			<!-- **** Step 4: Select a Correction (optional) ******************* --> 
+			<!-- **** Step 5: Select a Correction (optional) ******************* --> 
 			<!-- *************************************************************** -->
 			<div class="roundedBox">
-				<strong>Step 4: Select a Correction (optional)</strong>
+				<strong>Step 5: Select a Correction (optional)</strong>
 				<div style="float: right;">
-					<button data-bind="click: function(data, event) { $root.resetDefaultStep4(); }" class="buttons">Reset Defaults</button>
+					<button data-bind="click: function(data, event) { $root.resetDefaultStep5(); }" class="buttons">Reset Defaults</button>
 				</div>
 				<div class="marginLeft10px">
 					Correction Type:
@@ -1266,15 +1485,17 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 					</div>
 				</div>
 				<div class="marginTop10px" data-bind="visible: ($root.selectedCorrection().startsWith('ANOVA_') || $root.selectedCorrection().startsWith('EB_') || $root.selectedCorrection().startsWith('MP_'))">
-					Batch Type to Correct: 
-					<select id="selectedBatchToCorrectSelect" class="largeInputAndSelect" data-bind="options: $root.batchTypesForMBatch, value: $root.selectedBatchToCorrect"></select>
-					<span class="tooltip">
-						<img id="tooltipImage_BatchtoCorrect" src="images/Tooltip_icon.png" title="Batch Type to Correct" data-theme="myTooltipTheme" class="guiIconDimensions" alt="More Info">
-						<span id="tooltipContent_BatchtoCorrect" class="tooltiptext">Batch Type to Correct: <br><br>Select a batch type to which the correction algorithm will be applied.</span>
+					<span data-bind="visible: ($root.selectedCorrection().startsWith('ANOVA_') || $root.selectedCorrection().startsWith('EB_') || ($root.selectedCorrection()==='MP_batch'))">
+						Batch Type to Correct: 
+						<select id="selectedBatchToCorrectSelect" class="largeInputAndSelect" data-bind="options: $root.batchTypesForMBatch, value: $root.selectedBatchToCorrect"></select>
+						<span class="tooltip">
+							<img id="tooltipImage_BatchtoCorrect" src="images/Tooltip_icon.png" title="Batch Type to Correct" data-theme="myTooltipTheme" class="guiIconDimensions" alt="More Info">
+							<span id="tooltipContent_BatchtoCorrect" class="tooltiptext">Batch Type to Correct: <br><br>Select a batch type to which the correction algorithm will be applied.</span>
+						</span>
 					</span>
 					<div>
 						Minimum Valid Batch Size for Corrections:
-						<input type="number" min="0" data-bind="value: $root.selectedCorrectionMinBatchSize"/>
+						<input data-bind="value: $root.selectedCorrectionMinBatchSize"/>
 						<span class="tooltip">
 							<img id="tooltipImage_MinValidBatchSize" src="images/Tooltip_icon.png" title="Min Valid Batch Size for Correction" data-theme="myTooltipTheme" class="guiIconDimensions" alt="More Info">
 							<span id="tooltipContent_MinValidBatchSize" class="tooltiptext">Min Corrections Batch Size: <br><br>Enter a minimum batch size acceptable as a usable batch (usually 5).</span>
@@ -1310,7 +1531,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 								<tr>
 									<td>RBN Invariant Id:</td>
 									<td>
-										<input data-bind="value: $root.selectedRBN_InvariantId" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_]{1,16}" />
+										<input data-bind="value: $root.selectedRBN_InvariantId" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_]{1,16}" maxlength="10" />
 										<img id="tooltipImage_RBNInvariantId" title="RBN Invariant Id" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
 										<span id="tooltipContent_RBNInvariantId" class="tooltiptext">RBN Invariant Id:<br><br>
 											RBN Invariant Id Description here.</span>
@@ -1319,7 +1540,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 								<tr>
 									<td>RBN Variant Id:</td>
 									<td>
-										<input data-bind="value: $root.selectedRBN_VariantId" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_]{1,16}" />
+										<input data-bind="value: $root.selectedRBN_VariantId" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_]{1,16}" maxlength="10" />
 										<img id="tooltipImage_RBNVariantId" title="RBN Variant Id" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
 										<span id="tooltipContent_RBNVariantId" class="tooltiptext">RBN Variant Id:<br><br>
 											RBN Variant Id Description here.</span>
@@ -1368,7 +1589,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 						<tr>
 							<td>EBNPlus Group Id 1:</td>
 							<td>
-								<input data-bind="value: $root.selectedEBNPlus_GroupId1" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_]{1,16}" />
+								<input data-bind="value: $root.selectedEBNPlus_GroupId1" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_]{1,16}" maxlength="10" />
 								<img id="tooltipImage_EBNPlusGroupId1" title="EBNPlus Group Id 1" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
 								<span id="tooltipContent_EBNPlusGroupId1" class="tooltiptext">EBNPlus Group Id 1:<br><br>
 									EBNPlus Group Id 1 Description here.</span>
@@ -1377,7 +1598,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 						<tr>
 							<td>EBNPlus Group Id 2:</td>
 							<td>
-								<input data-bind="value: $root.selectedEBNPlus_GroupId2" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_]{1,16}" />
+								<input data-bind="value: $root.selectedEBNPlus_GroupId2" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_]{1,16}" maxlength="10" />
 								<img id="tooltipImage_EBNPlusGroupId2" title="EBNPlus Group Id 2" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
 								<span id="tooltipContent_EBNPlusGroupId2" class="tooltiptext">EBNPlus Group Id 2:<br><br>
 									EBNPlus Group Id 2 Description here.</span>
@@ -1386,7 +1607,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 						<tr>
 							<td>EBNPlus Random Number Seed:</td>
 							<td>
-								<input data-bind="value: $root.selectedEBNPlus_Seed" type="number" class="largeInputAndSelect"/>
+								<input data-bind="value: $root.selectedEBNPlus_Seed" class="largeInputAndSelect" />
 								<img id="tooltipImage_EBNPlusSeed" title="EBNPlus Seed" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
 								<span id="tooltipContent_EBNPlusSeed" class="tooltiptext">EBNPlus Seed:<br><br>
 									EBNPlus Seed Description here.</span>
@@ -1395,7 +1616,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 						<tr>
 							<td>EBNPlus Min Samples:</td>
 							<td>
-								<input data-bind="value: $root.selectedEBNPlus_MinSamples" type="number" class="largeInputAndSelect"/>
+								<input data-bind="value: $root.selectedEBNPlus_MinSamples" class="largeInputAndSelect" />
 								<img id="tooltipImage_EBNPlusMinSamples" title="EBNPlus Minimum Samples" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
 								<span id="tooltipContent_EBNPlusMinSamples" class="tooltiptext">EBNPlus Seed:<br><br>
 									EBNPlus Minimum Samples Description here.</span>
@@ -1405,12 +1626,12 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				</div>
 			</div>
 			<!-- *************************************************************** -->
-			<!-- **** Step 5: PCA/DSC ****************************************** -->
+			<!-- **** Step 6: PCA/DSC ****************************************** -->
 			<!-- *************************************************************** -->
 			<div class="roundedBox">
-				<strong>Step 5: Select PCA-Plus/DSC Arguments</strong>
+				<strong>Step 6: Select PCA-Plus/DSC Arguments</strong>
 				<div style="float: right;">
-					<button data-bind="click: function(data, event) { $root.resetDefaultStep5(); }" class="buttons">Reset Defaults</button>
+					<button data-bind="click: function(data, event) { $root.resetDefaultStep6(); }" class="buttons">Reset Defaults</button>
 				</div>
 				<div>
 					<table class="mbatchconfigInputTable">
@@ -1418,8 +1639,8 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 							<td style="text-align: left;">
 								Number of DSC Permutations:
 							</td>
-							<td> 
-								<input class="smallInputAndSelect" type="number" min="500" data-bind="value: $root.selectedDSCPermutations, attr: {max: $root.maxDscPermutations}" />
+							<td>
+								<input class="smallInputAndSelect" min="500" data-bind="value: $root.selectedDSCPermutations, attr: {max: $root.maxDscPermutations}" />
 								<span class="tooltip">
 									<img id="tooltipImage_DSCPerms" title="Number of DSC Permutations" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
 									<span id="tooltipContent_DSCPerms" class="tooltiptext">Number of DSC Permutations:<br><br>
@@ -1434,7 +1655,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 								Number of DSC Threads (1-<span data-bind="text: $root.maxDscThreads"></span>):
 							</td>
 							<td>
-								<input class="smallInputAndSelect" type="number" min="1" data-bind="value: $root.selectedDSCThreads, attr: { max: $root.maxDscThreads }" />
+								<input class="smallInputAndSelect" min="1" data-bind="value: $root.selectedDSCThreads, attr: { max: $root.maxDscThreads }" />
 								<span class="tooltip">
 									<img id="tooltipImage_DSCThreads" title="Number of DSC Threads" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" alt="More Info" class="guiIconDimensions">
 									<span id="tooltipContent_DSCThreads" class="tooltiptext">Number of DSC Threads:<br><br>
@@ -1448,7 +1669,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 								Minimum DSC Batch Size:
 							</td>
 							<td>
-								<input class="smallInputAndSelect" type="number" min="0" data-bind="value: $root.selectedDSCMinBatchSize" />
+								<input class="smallInputAndSelect" min="0" data-bind="value: $root.selectedDSCMinBatchSize"/>
 								<span class="tooltip">
 									<img id="tooltipImage_MinDSCBatchSize" title="Minimum DSC Batch Size" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
 									<span id="tooltipContent_MinDSCBatchSize"  class="tooltiptext">Minimum DSC Batch Size:<br><br>
@@ -1461,7 +1682,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 								DSC Random Number Seed:
 							</td>
 							<td>
-								<input class="smallInputAndSelect" type="number" min="0" data-bind="value: $root.selectedDSCSeed" />
+								<input class="smallInputAndSelect" min="0" data-bind="value: $root.selectedDSCSeed" maxlength="10" />
 								<span class="tooltip">
 									<img id="tooltipImage_DSCRandNumSeed" title="DSC Random Number Seed" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
 									<span id="tooltipContent_DSCRandNumSeed" class="tooltiptext">DSC Random Number Seed:<br><br>
@@ -1474,7 +1695,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 								Maximum Number of Features:
 							</td>
 							<td>
-								<input class="smallInputAndSelect" type="number" min="1000" data-bind="value: $root.selectedDSCMaxGeneCount, attr: { max: $root.maxDscGeneCount }" />
+								<input class="smallInputAndSelect" min="1000" data-bind="value: $root.selectedDSCMaxGeneCount, attr: { max: $root.maxDscGeneCount }" />
 								<span class="tooltip">
 									<img id="tooltipImage_MaxNumFeatures1" title="Maximum Number of Features" data-theme="myTooltipTheme" src="images/Tooltip_icon.png" class="guiIconDimensions" alt="More Info">
 									<span id="tooltipContent_MaxNumFeatures1"  class="tooltiptext">Maximum Number of Features (DSC):<br><br>
@@ -1490,16 +1711,16 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				</div>
 			</div>
 			<!-- *************************************************************** -->
-			<!-- **** Step 6: Boxplot ****************************************** -->
+			<!-- **** Step 7: Boxplot ****************************************** -->
 			<!-- *************************************************************** -->
 			<div class="roundedBox">
-				<strong>Step 6: Select Boxplot Arguments</strong>
+				<strong>Step 7: Select Boxplot Arguments</strong>
 				<div style="float: right;">
-					<button data-bind="click: function(data, event) { $root.resetDefaultStep6(); }" class="buttons">Reset Defaults</button>
+					<button data-bind="click: function(data, event) { $root.resetDefaultStep7(); }" class="buttons">Reset Defaults</button>
 				</div>
 				<div class="marginLeft10px">
 					Max Number of Features:
-					<input class="smallInputAndSelect" type="number" data-bind="value: $root.selectedBoxplotMaxGeneCount, attr: { max: $root.maxBoxplotGeneCount, min: $root.minBoxplotGeneCount }" />
+					<input class="smallInputAndSelect" data-bind="value: $root.selectedBoxplotMaxGeneCount, attr: { max: $root.maxBoxplotGeneCount, min: $root.minBoxplotGeneCount }"/>
 					<span class="tooltip">
 						<img id="tooltipImage_Boxplot" title="Max Number of Features" data-theme="myTooltipTheme" src="images/Tooltip_icon.png"  class="guiIconDimensions" alt="More Info">
 						<span id="tooltipContent_Boxplot" class="tooltiptext">Max Number of Features (Boxplot):<br><br>
@@ -1511,12 +1732,12 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				</div>
 			</div>
 			<!-- *************************************************************** -->
-			<!-- **** Step 7: NGCHM ******************************************** -->
+			<!-- **** Step 8: NGCHM ******************************************** -->
 			<!-- *************************************************************** -->
 			<div class="roundedBox">
-				<strong>Step 7: Select NGCHM Arguments</strong>
+				<strong>Step 8: Select NGCHM Arguments</strong>
 				<div style="float: right;">
-					<button data-bind="click: function(data, event) { $root.resetDefaultStep7(); }" class="buttons">Reset Defaults</button>
+					<button data-bind="click: function(data, event) { $root.resetDefaultStep8(); }" class="buttons">Reset Defaults</button>
 				</div>
 				<div class="marginLeft10px">
 					Perform NGCHM creation:
@@ -1531,7 +1752,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				</div>
 				<div class="marginLeft10px">
 					NGCHM Link-Out Row Type:
-					<input data-bind="value: $root.ngchmRowType" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_|.]*" />
+					<input data-bind="value: $root.ngchmRowType" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_|.]*" maxlength="512" />
 					<span class="tooltip">
 						<img id="tooltipImage_NGCHMRowType" title="NGCHM Link-Out Row Type" data-theme="myTooltipTheme" src="images/Tooltip_icon.png"  class="guiIconDimensions" alt="More Info">
 						<span id="tooltipContent_NGCHMRowType" class="tooltiptext">
@@ -1543,7 +1764,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 				</div>
 				<div class="marginLeft10px">
 					NGCHM Link-Out Column Type:
-					<input data-bind="value: $root.ngchmColumnType" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_|.]*" />
+					<input data-bind="value: $root.ngchmColumnType" class="largeInputAndSelect" type="text" pattern="[A-Za-z0-9_|.]*" maxlength="512" />
 					<span class="tooltip">
 						<img id="tooltipImage_NGCHMColType" title="NGCHM Link-Out Row Type" data-theme="myTooltipTheme" src="images/Tooltip_icon.png"  class="guiIconDimensions" alt="More Info">
 						<span id="tooltipContent_NGCHMColType" class="tooltiptext">
@@ -1563,7 +1784,7 @@ Some icons from http://tango.freedesktop.org/Tango_Desktop_Project
 			<button class="buttons" id="doMBatchRunButton" data-bind="visible: appview.isValid(), click: function(data, event) { $root.doMBatchRun(); }" >Do MBatch Run</button>
 			<button class="buttons" id="saveConfig" data-bind="click: function(data,event){ $root.ajaxMBatchConfig('write'); }">Save Configuration</button>
 			<button class="buttons" id="loadConfig" data-bind="click: function(data,event){ $root.ajaxMBatchConfig('read'); }">Load Configuration</button>
-			<button style="float: right;" class="buttons" id="resetDefault3to7" data-bind="visible: $root.batchTypesForMBatch().length>0, click: function(data,event){ $root.resetDefault3to7(); }">Reset Defaults 3-7</button>
+			<button style="float: right;" class="buttons" id="resetDefault3to7" data-bind="visible: $root.batchTypesForMBatch().length>0, click: function(data,event){ $root.resetDefault3to7(); }">Reset Defaults 3-8</button>
 		</div>
 	</body>
 </html>
