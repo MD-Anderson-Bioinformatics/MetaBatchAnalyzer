@@ -52,7 +52,7 @@ do
 	if [ "$A" != "none" ];
 	then
 		echo Found job "$A", now starting
-		export jobLogr=/MBA/OUTPUT/${A}/log.rLog
+		export jobLogr=/BEA/MBA/OUTPUT/${A}/log.rLog
 		script -a -f -c 'Rscript --vanilla "$rFile2" "-jobID=$A"' "$jobLogr"
 		script -a -f -c 'Rscript --vanilla "$rFile3" "-jobID=$A"' "$jobLogr"
 		script -a -f -c 'Rscript --vanilla "$rFileFinal" "-jobID=$A" "-mbaURL=$mbaURL"' "$jobLogr"

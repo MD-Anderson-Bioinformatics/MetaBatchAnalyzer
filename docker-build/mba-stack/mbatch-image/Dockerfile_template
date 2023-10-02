@@ -1,4 +1,4 @@
-FROM mdabcb/mbatchsa_image:BEA_VERSION_TIMESTAMP
+FROM mdabcb/mbatchsa_image:HUB_BEA_VERSION_TIMESTAMP
 # CI/CD replaces above with local repo image
 
 # reminder, use {} around environmental variables, otherwise docker uses it as a literal
@@ -13,19 +13,16 @@ LABEL edu.mda.bcb.name="MetaBatch Analyzer: MBatch" \
 
 # create and setup mbauser use to external directory owner
 # also, set permissions and ownerships on internal docker directories
-RUN useradd -l -s /bin/bash -d /home/mbauser -u <USERID> mbauser && \
-    chown -R mbauser:mbauser /home/mbauser
+# group already exists groupadd -g <GROUPID> mbagroup && \
+RUN useradd -l -s /bin/bash -d /home/mbauser -u <USERID> -g <GROUPID> mbauser && \
+    chown -R mbauser:bcbgroup /home/mbauser && \
+    chmod -R 777 /home/mbauser
 
 # make subdirectory in user home for running
-# COPY is always done as root!!!!
 RUN mkdir /home/mbauser/mbatch && \
-    chown -R mbauser:mbauser /home/mbauser/mbatch && \
+    chown -R mbauser:bcbgroup /home/mbauser/mbatch && \
     chmod -R u+rwx /home/mbauser/mbatch
-COPY installations /home/mbauser/mbatch
-
-RUN chown -R mbauser:mbauser /home/mbauser && \
-    chmod -R u+rwx /home/mbauser && \
-    ls -l /home/mbauser/mbatch
+COPY --chown=mbauser:bcbgroup --chmod=775 installations /home/mbauser/mbatch
 
 # switch from root to mbauser user
 USER mbauser

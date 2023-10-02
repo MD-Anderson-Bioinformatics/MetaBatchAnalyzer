@@ -193,7 +193,7 @@ getNowTimestamp = function()
 	};
 
 	var d = new Date(parseInt(currentTime,10));
-	return(d.getFullYear() + "_" + (d.getMonth()+1) + "_" + d.getDate() + "_" + pad(d.getHours()) + pad(d.getMinutes()));
+	return(d.getFullYear() + "_" + pad(d.getMonth()+1) + "_" + pad(d.getDate()) + "_" + pad(d.getHours()) + pad(d.getMinutes()));
 };
 
 // This function converts the job ID (which is epoch time) to a readable date and time.

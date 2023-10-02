@@ -14,8 +14,8 @@ package edu.mda.bcb.mba.servlets;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import edu.mda.bcb.mba.authorization.UserAndRoleData;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  *

@@ -40,15 +40,15 @@ writeSessionFile <- function(theFile)
 
 runStatus <- "success"
 tryCatch({
-  configFile <- file.path("/MBA/OUTPUT", jobID, "ZIP-RESULTS", "MBatchConfig.tsv")
-  resultsDir <- file.path("/MBA/OUTPUT", jobID, "ZIP-RESULTS")
-  dataDir <- file.path("/MBA/OUTPUT", jobID, "ZIP-DATA", "original")
+  configFile <- file.path("/BEA/MBA/OUTPUT", jobID, "ZIP-RESULTS", "MBatchConfig.tsv")
+  resultsDir <- file.path("/BEA/MBA/OUTPUT", jobID, "ZIP-RESULTS")
+  dataDir <- file.path("/BEA/MBA/OUTPUT", jobID, "ZIP-DATA", "original")
   setwd(resultsDir)
-  mbatchDF <- readAsGenericDataframe(file.path("/MBA/OUTPUT/mbatch.tsv"))
+  mbatchDF <- readAsGenericDataframe(file.path("/BEA/MBA/OUTPUT/mbatch.tsv"))
   mbatchRunFromConfig(theConfigFile=configFile,
                       theMatrixFile=file.path(dataDir, "matrix_data.tsv"),
                       theBatchesFile=file.path(dataDir, "batches.tsv"),
-                      theZipDataDir=file.path("/MBA/OUTPUT", jobID, "ZIP-DATA"),
+                      theZipDataDir=file.path("/BEA/MBA/OUTPUT", jobID, "ZIP-DATA"),
                       theZipResultsDir=resultsDir,
                       theNaStrings=c("null", "NA"),
                       theShaidyMapGen="/bcbsetup/ShaidyMapGen.jar",
@@ -63,7 +63,7 @@ tryCatch({
 }, finally = {
   # do not catch warnings, since then they act like errors and stop the process
   warnings()
-  sessionFile <- file.path("/MBA/OUTPUT", jobID, "ZIP-RESULTS", "session_r.txt")
+  sessionFile <- file.path("/BEA/MBA/OUTPUT", jobID, "ZIP-RESULTS", "session_r.txt")
   writeSessionFile(sessionFile)
   cat(runStatus)
 })

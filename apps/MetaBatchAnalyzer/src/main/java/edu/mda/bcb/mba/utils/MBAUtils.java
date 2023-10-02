@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.List;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.Part;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.Part;
 import org.apache.commons.io.FileUtils;
 import org.apache.tika.Tika;
 import org.apache.tika.exception.TikaException;
@@ -40,10 +40,11 @@ import org.xml.sax.SAXException;
  */
 public class MBAUtils
 {
-	final public static String M_OUTPUT = "/MBA/OUTPUT";
-	final public static String M_PROPS = "/MBA/PROPS";
-	final public static String M_UTILS = "/MBA/UTILS";
-	final public static String M_WEBSITE = "/MBA/WEBSITE";
+	// *mapped-dir* <- used for searching for hard-coded paths
+	final public static String M_OUTPUT = "/BEA/MBA/OUTPUT";
+	final public static String M_PROPS = "/BEA/MBA/PROPS";
+	final public static String M_UTILS = "/BEA/MBA/UTILS";
+	final public static String M_WEBSITE = "/BEA/MBA/WEBSITE";
 	public static final String M_VERSION = "BEA_VERSION_TIMESTAMP";
 	
 	static public void copyMutationsIfFileExists(File theSource1, File theSource2, File theDataDir, File theMafDir, String theDestName1, String theDestName2) throws IOException

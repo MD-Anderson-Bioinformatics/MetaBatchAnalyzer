@@ -30,7 +30,7 @@ for( myStr in commandArgs() )
 findCorrectedTsv <- function(theBaseDir)
 {
   filepath <- NULL
-  fileFound <- dir(theBaseDir, "corrected_matrix.tsv")
+  fileFound <- dir(theBaseDir, "adjusted_matrix.tsv")
   if (length(fileFound)>0)
   {
     filepath <- file.path(theBaseDir, fileFound)
@@ -47,9 +47,9 @@ findCorrectedTsv <- function(theBaseDir)
 runStatus <- "success"
 tryCatch({
   mbatchID <- jobID
-  zipDir <- file.path("/MBA/OUTPUT", jobID)
-  resultDir <- file.path("/MBA/OUTPUT", jobID, "ZIP-RESULTS")
-  dataDir <- file.path("/MBA/OUTPUT", jobID, "ZIP-DATA")
+  zipDir <- file.path("/BEA/MBA/OUTPUT", jobID)
+  resultDir <- file.path("/BEA/MBA/OUTPUT", jobID, "ZIP-RESULTS")
+  dataDir <- file.path("/BEA/MBA/OUTPUT", jobID, "ZIP-DATA")
   message(paste("runMBatch3.R mbatchID: ", mbatchID))
   message(paste("runMBatch3.R zipDir: ", zipDir))
   message(paste("runMBatch3.R resultDir: ", resultDir))

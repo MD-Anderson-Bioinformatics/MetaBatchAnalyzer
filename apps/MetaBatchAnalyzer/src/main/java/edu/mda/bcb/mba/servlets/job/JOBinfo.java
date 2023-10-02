@@ -18,8 +18,8 @@ import edu.mda.bcb.mba.status.JobStatus;
 import edu.mda.bcb.mba.utils.ScanCheck;
 import java.util.Arrays;
 import java.util.TreeSet;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  *

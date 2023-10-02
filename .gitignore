@@ -1,0 +1,12 @@
+apps/*/build
+apps/*/dist
+apps/*/target
+apps/*/nbproject/private
+apps/*/.Rproj.user
+apps/*/.Rbuildignore
+apps/*/.Rhistory
+data/apps_out/*
+data/testing_dynamic/*
+.Rproj.user
+/apps/SamplesValidation/target/
+/apps/BatchEffectsInterface/target/

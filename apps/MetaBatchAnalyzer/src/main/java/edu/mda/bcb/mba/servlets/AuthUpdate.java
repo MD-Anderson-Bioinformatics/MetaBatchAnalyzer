@@ -21,12 +21,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.Principal;
 import java.util.TreeSet;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.catalina.realm.GenericPrincipal;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  *
@@ -119,40 +118,40 @@ public class AuthUpdate extends HttpServlet
 	
 	static public TreeSet<String> getUserRoles(HttpServletRequest request)
 	{
-		Principal p = request.getUserPrincipal();
+		// Principal p = request.getUserPrincipal();
 		TreeSet<String> roles = new TreeSet<>();
-		if (null!=p)
-		{
-			System.out.println("request.getUserPrincipal().getClass() = " + request.getUserPrincipal().getClass());
-			GenericPrincipal gp = (GenericPrincipal)p;
-			for (String role : gp.getRoles())
-			{
-				roles.add(role);
-			}
-		}
+//		if (null!=p)
+//		{
+//			System.out.println("request.getUserPrincipal().getClass() = " + request.getUserPrincipal().getClass());
+//			GenericPrincipal gp = (GenericPrincipal)p;
+//			for (String role : gp.getRoles())
+//			{
+//				roles.add(role);
+//			}
+//		}
 		return roles;
 	}
 	
 	static public String getUserRoleString(HttpServletRequest request)
 	{
-		Principal p = request.getUserPrincipal();
+		//Principal p = request.getUserPrincipal();
 		String roleString = null;
-		if (null!=p)
-		{
-			System.out.println("request.getUserPrincipal().getClass() = " + request.getUserPrincipal().getClass());
-			GenericPrincipal gp = (GenericPrincipal)p;
-			for (String role : gp.getRoles())
-			{
-				if (null==roleString)
-				{
-					roleString = role;
-				}
-				else
-				{
-					roleString = roleString + "|" + role;
-				}
-			}
-		}
+//		if (null!=p)
+//		{
+//			System.out.println("request.getUserPrincipal().getClass() = " + request.getUserPrincipal().getClass());
+//			GenericPrincipal gp = (GenericPrincipal)p;
+//			for (String role : gp.getRoles())
+//			{
+//				if (null==roleString)
+//				{
+//					roleString = role;
+//				}
+//				else
+//				{
+//					roleString = roleString + "|" + role;
+//				}
+//			}
+//		}
 		return roleString;
 	}
 	

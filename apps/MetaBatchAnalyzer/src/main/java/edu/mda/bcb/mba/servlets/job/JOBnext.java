@@ -15,8 +15,8 @@ import edu.mda.bcb.mba.servlets.MBAServletMixin;
 import edu.mda.bcb.mba.status.JOB_STATUS;
 import edu.mda.bcb.mba.status.JobStatus;
 import edu.mda.bcb.mba.utils.ScanCheck;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServletRequest;
 
 // JOBnext USED IN C:\work\code\BatchEffects\docker\MBatchImage\installations\runMBatch1.R
 // JOBnext USED IN GDCDownload edu.mda.bcb.gdc.download.DatasetConfig

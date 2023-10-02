@@ -24,14 +24,14 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.TreeSet;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import javax.mail.MessagingException;
-import javax.servlet.http.HttpServlet;
+import jakarta.mail.MessagingException;
+import jakarta.servlet.http.HttpServlet;
 import org.apache.commons.text.StringEscapeUtils;
 
 /**

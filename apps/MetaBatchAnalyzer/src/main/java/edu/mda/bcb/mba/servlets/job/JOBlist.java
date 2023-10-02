@@ -15,8 +15,8 @@ import edu.mda.bcb.mba.servlets.AuthUpdate;
 import edu.mda.bcb.mba.servlets.MBAServletMixin;
 import edu.mda.bcb.mba.status.JobStatus;
 import java.util.TreeSet;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  *

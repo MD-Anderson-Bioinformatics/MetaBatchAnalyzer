@@ -17,9 +17,9 @@ import edu.mda.bcb.mba.status.JOB_STATUS;
 import edu.mda.bcb.mba.status.JobStatus;
 import edu.mda.bcb.mba.utils.ScanCheck;
 import java.io.File;
-import javax.servlet.annotation.MultipartConfig;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.annotation.MultipartConfig;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.io.FileUtils;
 
 /**

@@ -22,8 +22,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Enumeration;
 import java.util.List;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.text.StringEscapeUtils;
 
@@ -64,6 +64,7 @@ public class MBatchConfig extends MBAServletMixin
 			String paraName = sEnum.nextElement();
 			String paraValue = theRequest.getParameter(paraName);
 			if (("jobId".equals(paraName)) || ("configDesc".equals(paraName))
+					|| ("Title".equals(paraName))
 					|| ("DataVersion".equals(paraName)) || ("TestVersion".equals(paraName))
 					|| ("mutBatchMem".equals(paraName)) || ("RBN_InvariantId".equals(paraName))
 					|| ("RBN_VariantId".equals(paraName)) || ("EBNPlus_GroupId1".equals(paraName))
@@ -216,7 +217,7 @@ public class MBatchConfig extends MBAServletMixin
 				String value = null;
 				if ((!"_".equals(paraName)) && (!"action".equals(paraName)))
 				{
-					if ("title".equals(paraName))
+					if ("Title".equals(paraName))
 					{
 						foundTitle = true;
 					}
@@ -265,7 +266,7 @@ public class MBatchConfig extends MBAServletMixin
 			}
 			if (false == foundTitle)
 			{
-				bw.write("title\tBatch Effects Run from MBA");
+				bw.write("Title\tBatch Effects Run from MBA");
 				bw.newLine();
 			}
 			File mafFiles = new File(new File(new File(theJobDir, "ZIP-DATA"), "original"), "MUT_MAFS");
