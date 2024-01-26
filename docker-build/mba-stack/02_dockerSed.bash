@@ -49,7 +49,7 @@ JOB_OUTPUT_DIR=${LOCAL_PATH_ENV}/MBA/OUTPUT
 ### directory for the Batch Effects Website
 WEBSITE_DIR=${LOCAL_PATH_ENV}/MBA/WEBSITE
 ### read-only directory for util files
-UTIL_DIR=${LOCAL_PATH_ENV}/MBA/UTIL
+UTIL_DIR=${LOCAL_PATH_ENV}/MBA/UTILS
 
 # URL and tag to use as image name for MBA image, such as mdabcb/mba_image:DAP_BEA_VERSION_TIMESTAMP
 MBA_IMAGEURL=${9}

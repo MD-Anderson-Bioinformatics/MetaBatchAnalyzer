@@ -18,6 +18,8 @@ mvn clean install dependency:copy-dependencies
 
 echo "compile Batch Effects Viewer (different repo - DataAPI)"
 cd ${BASE_DIR}/../DataAPI/apps/MetabatchOmicBrowser
+curl -o ${BASE_DIR}/../DataAPI/apps/MetabatchOmicBrowser/src/main/webapp/view/lib/ngchmEmbed-min.js https://raw.githubusercontent.com/MD-Anderson-Bioinformatics/NG-CHM-Artifacts/2.24.1-build-23/viewer.standalone/ngchmEmbed-min.js
+curl -o ${BASE_DIR}/../DataAPI/apps/MetabatchOmicBrowser/src/main/webapp/view/lib/ngchmWidget-min.js https://raw.githubusercontent.com/MD-Anderson-Bioinformatics/NG-CHM-Artifacts/2.24.1-build-23/viewer.standalone/ngchmWidget-min.js
 mvn clean install dependency:copy-dependencies
 
 echo "list targets"

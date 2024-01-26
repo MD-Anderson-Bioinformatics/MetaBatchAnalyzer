@@ -17,10 +17,10 @@ Make the following directories.
  - /MBA/PROPS
  - /MBA/UTIL
  - /MBA/WEBSITE
- - /MBA/MW_CONFIG
+ - /MBA/MW_CACHE
  - /MBA/MW_ZIP
 
- 1. Copy the contents of inst/ext/MW_CONFIG into /MBA/MW_CONFIG.
+ 1. Copy the contents of inst/ext/MW_CACHE into /MBA/MW_CACHE.
  2. Copy the contents of inst/ext/OUTPUT into /MBA/OUTPUT.
  3. Copy the contents of inst/ext/PROPS into /MBA/PROPS.
  4. Copy the contents of inst/ext/UTIL into /MBA/UTIL.

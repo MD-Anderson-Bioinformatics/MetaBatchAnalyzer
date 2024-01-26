@@ -1,7 +1,7 @@
 # this is the docker compose version
 version: '3.0'
 
-# file version 2023-09-22-1600
+# file version 2024-01-26-1200
 
 
 networks:
@@ -23,7 +23,7 @@ services:
             context: ./mba-image
             dockerfile: Dockerfile
         container_name: mbaMBA_cont_hub
-        image: mdabcb/mba_image:2023-09-22-1600
+        image: mdabcb/mba_image:2024-01-26-1200
         volumes:
             # external:internal
             # external log path
@@ -35,9 +35,9 @@ services:
             # directory for the Batch Effects Website (must be on Linux file system since links to /MBA/OUTOUT are created here)
             - /MBA/MBA/WEBSITE:/BEA/MBA/WEBSITE
             # read-only directory for HG38 map
-            - /MBA/MBA/UTIL:/BEA/MBA/UTILS:ro
+            - /MBA/MBA/UTILS:/BEA/MBA/UTILS:ro
             # SMW paths for Metabolomics Workbench DAta
-            - /MBA/MW_CONFIG:/BEA/SMW/MW_CACHE:ro
+            - /MBA/MW_CACHE:/BEA/SMW/MW_CACHE:ro
             - /MBA/MW_ZIP:/BEA/SMW/MW_ZIP
             # read-only file to set time to same in image as on server
             - /etc/localtime:/etc/localtime:ro
@@ -55,14 +55,14 @@ services:
             context: ./mbatch-image
             dockerfile: Dockerfile
         container_name: mbatchMBA_cont_hub
-        image: mdabcb/mbatch_image:2023-09-22-1600
+        image: mdabcb/mbatch_image:2024-01-26-1200
         volumes:
             # directory for output from MBA, GDCDownload, and MBatch Results external:internal
             - /MBA/MBA/OUTPUT:/BEA/MBA/OUTPUT
             # directory for the Batch Effects Website (must be on Linux file system since links to /MBA/OUTOUT are created here)
             - /MBA/MBA/WEBSITE:/BEA/MBA/WEBSITE
             # SMW paths for Metabolomics Workbench DAta
-            - /MBA/MW_CONFIG:/BEA/SMW/MW_CACHE:ro
+            - /MBA/MW_CACHE:/BEA/SMW/MW_CACHE:ro
             - /MBA/MW_ZIP:/BEA/SMW/MW_ZIP
             # read-only file to set time to same in image as on server
             - /etc/localtime:/etc/localtime:ro
@@ -80,7 +80,7 @@ services:
             dockerfile: Dockerfile
         container_name: bevMBA_cont_hub
         # update :latest to desired version
-        image: mdabcb/bev_image:2023-09-22-1600
+        image: mdabcb/bev_image:2024-01-26-1200
         volumes:
             # external:internal
             # external log path

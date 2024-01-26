@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2022 University of Texas MD Anderson Cancer Center
+// Copyright (c) 2011-2024 University of Texas MD Anderson Cancer Center
 //
 // This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
 //
@@ -46,28 +46,38 @@ public class JOBdelete extends MBAServletMixin
 		if ((jobId!=null)&&!("".equals(jobId)))
 		{
 			File jobDir = new File(MBAUtils.M_OUTPUT, jobId);
+			log("JOBdelete jobDir = " + jobDir);
 			boolean success = deleteWebsiteFiles(jobId, this);
+			log("JOBdelete deleteWebsiteFiles = " + success);
 			if(true==success)
 			{
+				log("JOBdelete deleteQuietly before");
 				success = FileUtils.deleteQuietly(jobDir);
+				log("JOBdelete deleteQuietly = " + success);
 				if(true==success)
 				{
+					log("JOBdelete deleteJob before");
 					JobStatus.deleteJob(jobId, this);
+					log("JOBdelete deleteJob after");
 					theBuffer.append("Successfully deleted " + jobId);
+					log("Successfully deleted " + jobId);
 				}
 				else
 				{
 					theBuffer.append("Unable to delete " + jobId);
+					log("Unable to delete " + jobId);
 				}
 			}
 			else
 			{
 				theBuffer.append("Unable to delete website directory " + jobId);
+				log("Unable to delete website directory " + jobId);
 			}
 		}
 		else
 		{
 			theBuffer.append("No job specified");
+			log("No job specified");
 		}
 	}
 	
