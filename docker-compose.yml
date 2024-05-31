@@ -1,16 +1,13 @@
 # this is the docker compose version
 version: '3.0'
 
-# file version 2024-01-26-1200
+# file version 2024-05-29-1000
 
 
 networks:
     # network for this compose stack
     mba_network_hub:
         driver: bridge
-#SUBNET        ipam:
-#SUBNET            config:
-#SUBNET            - subnet: 0
 services:
     # mbaService runs tomcat with MetaBatch Analyzer
     mbaService:
@@ -23,7 +20,7 @@ services:
             context: ./mba-image
             dockerfile: Dockerfile
         container_name: mbaMBA_cont_hub
-        image: mdabcb/mba_image:2024-01-26-1200
+        image: mdabcb/mba_image:2024-05-29-1000
         volumes:
             # external:internal
             # external log path
@@ -55,7 +52,7 @@ services:
             context: ./mbatch-image
             dockerfile: Dockerfile
         container_name: mbatchMBA_cont_hub
-        image: mdabcb/mbatch_image:2024-01-26-1200
+        image: mdabcb/mbatch_image:2024-05-29-1000
         volumes:
             # directory for output from MBA, GDCDownload, and MBatch Results external:internal
             - /MBA/MBA/OUTPUT:/BEA/MBA/OUTPUT
@@ -80,7 +77,7 @@ services:
             dockerfile: Dockerfile
         container_name: bevMBA_cont_hub
         # update :latest to desired version
-        image: mdabcb/bev_image:2024-01-26-1200
+        image: mdabcb/bev_image:2024-05-29-1000
         volumes:
             # external:internal
             # external log path

@@ -1,0 +1,24 @@
+FROM <IMAGEURL>
+
+LABEL edu.mda.bcb.uid="<LOCALUID>"
+
+####
+#### change bcbuser to new user id
+####
+
+USER root
+RUN usermod -u <LOCALUID> mbauser && \
+    chown <LOCALUID> /BEA && \
+    find /home -user <USERID> -exec chown <LOCALUID> {} \;
+
+####
+#### End of build steps
+####
+
+# switch from root to mbauser user
+USER mbauser
+
+# set working directory for future commands
+WORKDIR /home/mbauser/mbatch
+CMD /home/mbauser/mbatch/runRproc.bash http://mbaService:8080/
+

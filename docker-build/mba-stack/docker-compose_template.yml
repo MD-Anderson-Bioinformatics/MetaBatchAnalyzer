@@ -8,9 +8,6 @@ networks:
     # network for this compose stack
     mba_network_<ENVIRON>:
         driver: bridge
-#SUBNET        ipam:
-#SUBNET            config:
-#SUBNET            - subnet: <SUBNET>
 services:
     # mbaService runs tomcat with MetaBatch Analyzer
     mbaService:
@@ -21,7 +18,7 @@ services:
         # build from sub-directory and Dockerfile
         build:
             context: ./mba-image
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile<DC_DF_DVLP>
         container_name: mbaMBA_cont_<ENVIRON>
         image: <MBA-IMAGEURL>
         volumes:
@@ -53,7 +50,7 @@ services:
         build:
             # build from sub-directory and Dockerfile
             context: ./mbatch-image
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile<DC_DF_DVLP>
         container_name: mbatchMBA_cont_<ENVIRON>
         image: <MBATCH-IMAGEURL>
         volumes:
@@ -77,7 +74,7 @@ services:
         build:
             # build from sub-directory and Dockerfile
             context: ./bev-image
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile<DC_DF_DVLP>
         container_name: bevMBA_cont_<ENVIRON>
         # update :latest to desired version
         image: <BEV-IMAGEURL>
